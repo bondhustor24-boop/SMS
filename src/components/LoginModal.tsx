@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Lock, User, Key, LogIn, ShieldAlert, CheckCircle, Eye, EyeOff, Sparkles, RefreshCw, Crown } from 'lucide-react';
 import { UserRole, UserSession } from '../types';
+import { fetchGoogleSheetData } from '../utils/sheetFetcher';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -95,17 +96,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         candidateRows.push(...currentSheetRows);
       }
 
-      // 2. Fetch official auth sheet data from API
+      // 2. Fetch official auth sheet data
       try {
-        const res = await fetch(`/api/sheet-data?url=${encodeURIComponent(AUTH_SHEET_URL)}`, {
-          signal: AbortSignal.timeout(10000),
-        });
-        const contentType = res.headers.get('content-type') || '';
-        if (res.ok && contentType.includes('application/json')) {
-          const authData = await res.json();
-          if (authData && Array.isArray(authData.rows) && authData.rows.length > 0) {
-            candidateRows.push(...authData.rows);
-          }
+        const authData = await fetchGoogleSheetData(AUTH_SHEET_URL);
+        if (authData && Array.isArray(authData.rows) && authData.rows.length > 0) {
+          candidateRows.push(...authData.rows);
         }
       } catch (err) {
         console.warn('Could not fetch external auth sheet, using candidate rows:', err);
