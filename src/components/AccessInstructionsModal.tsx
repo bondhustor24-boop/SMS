@@ -54,38 +54,38 @@ export const AccessInstructionsModal: React.FC<AccessInstructionsModalProps> = (
   }[lang];
 
   return (
-    <div className="bg-amber-50/80 border border-amber-200 rounded-2xl p-5 sm:p-6 mb-6 shadow-xs">
+    <div className="bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-2xl p-5 sm:p-6 mb-6 shadow-xs">
       <div className="flex items-start space-x-3.5">
-        <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-600 shrink-0">
+        <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-600 dark:text-amber-400 shrink-0">
           <Lock className="w-6 h-6" />
         </div>
         <div className="flex-1">
-          <h2 className="text-base font-bold text-amber-900 flex items-center gap-2">
+          <h2 className="text-base font-bold text-amber-900 dark:text-amber-200 flex items-center gap-2">
             <span>{t.title}</span>
-            <span className="px-2 py-0.5 text-[10px] font-bold bg-amber-200 text-amber-800 rounded-full uppercase">
+            <span className="px-2 py-0.5 text-[10px] font-bold bg-amber-200 dark:bg-amber-900/80 text-amber-800 dark:text-amber-200 rounded-full uppercase">
               Action Required
             </span>
           </h2>
-          <p className="text-xs sm:text-sm text-amber-800/90 mt-1">
+          <p className="text-xs sm:text-sm text-amber-800/90 dark:text-amber-300/90 mt-1">
             {t.desc}
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
-            <div className="bg-white p-3.5 rounded-xl border border-amber-200/80 text-xs">
-              <p className="font-bold text-slate-800 mb-1">{t.step1Title}</p>
-              <p className="text-slate-600">{t.step1Desc}</p>
+            <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-amber-200/80 dark:border-amber-800/50 text-xs">
+              <p className="font-bold text-slate-800 dark:text-slate-200 mb-1">{t.step1Title}</p>
+              <p className="text-slate-600 dark:text-slate-400">{t.step1Desc}</p>
             </div>
-            <div className="bg-white p-3.5 rounded-xl border border-amber-200/80 text-xs">
-              <p className="font-bold text-slate-800 mb-1">{t.step2Title}</p>
-              <p className="text-slate-600">{t.step2Desc}</p>
+            <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-amber-200/80 dark:border-amber-800/50 text-xs">
+              <p className="font-bold text-slate-800 dark:text-slate-200 mb-1">{t.step2Title}</p>
+              <p className="text-slate-600 dark:text-slate-400">{t.step2Desc}</p>
             </div>
-            <div className="bg-white p-3.5 rounded-xl border border-amber-200/80 text-xs">
-              <p className="font-bold text-slate-800 mb-1">{t.step3Title}</p>
-              <p className="text-slate-600">{t.step3Desc}</p>
+            <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-amber-200/80 dark:border-amber-800/50 text-xs">
+              <p className="font-bold text-slate-800 dark:text-slate-200 mb-1">{t.step3Title}</p>
+              <p className="text-slate-600 dark:text-slate-400">{t.step3Desc}</p>
             </div>
-            <div className="bg-white p-3.5 rounded-xl border border-amber-200/80 text-xs">
-              <p className="font-bold text-slate-800 mb-1">{t.step4Title}</p>
-              <p className="text-slate-600">{t.step4Desc}</p>
+            <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-amber-200/80 dark:border-amber-800/50 text-xs">
+              <p className="font-bold text-slate-800 dark:text-slate-200 mb-1">{t.step4Title}</p>
+              <p className="text-slate-600 dark:text-slate-400">{t.step4Desc}</p>
             </div>
           </div>
 

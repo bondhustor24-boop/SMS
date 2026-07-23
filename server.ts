@@ -11,6 +11,7 @@ async function startServer() {
 
   // API Route to fetch and parse Google Sheet data
   app.get("/api/sheet-data", async (req, res) => {
+    res.setHeader("Content-Type", "application/json");
     try {
       const sheetUrlParam = req.query.url as string | undefined;
       let spreadsheetId = "1hLt1v3C83j7aTu4nev35w9j7dwiVdYRD1QzyUTgWzLM";
@@ -27,7 +28,6 @@ async function startServer() {
         if (gidMatch && gidMatch[1]) {
           gid = gidMatch[1];
         } else {
-          // If no gid is specified in the URL, default to "0" or "193362198" if it's the SMS333 sheet
           if (spreadsheetId === "1hLt1v3C83j7aTu4nev35w9j7dwiVdYRD1QzyUTgWzLM") {
             gid = "193362198";
           } else {
@@ -44,15 +44,16 @@ async function startServer() {
       }
 
       // Try multiple fetch endpoints from Google Sheets
-      const exportCsvUrlWithGid = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${gid}`;
-      const exportCsvUrlDefault = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv`;
       const gvizCsvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&gid=${gid}`;
+      const exportCsvUrlWithGid = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${gid}`;
+      const pubCsvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/pub?output=csv&gid=${gid}`;
+      const exportCsvUrlDefault = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv`;
 
       let csvText = "";
       let fetchSuccess = false;
 
-      // Endpoint candidate list
-      const urlCandidates = [exportCsvUrlWithGid, exportCsvUrlDefault, gvizCsvUrl];
+      // Endpoint candidate list - gviz is fastest and most reliable
+      const urlCandidates = [gvizCsvUrl, exportCsvUrlWithGid, pubCsvUrl, exportCsvUrlDefault];
 
       for (const urlCandidate of urlCandidates) {
         if (fetchSuccess && csvText) break;
@@ -62,6 +63,7 @@ async function startServer() {
               "User-Agent":
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             },
+            signal: AbortSignal.timeout(10000),
           });
           if (resp.ok) {
             const text = await resp.text();
@@ -75,8 +77,8 @@ async function startServer() {
               fetchSuccess = true;
             }
           }
-        } catch (err) {
-          console.warn("Failed fetching sheet candidate:", urlCandidate, err);
+        } catch (err: any) {
+          console.warn(`Failed fetching sheet candidate (${urlCandidate}):`, err?.message || String(err));
         }
       }
 

@@ -100,23 +100,23 @@ export const RecentSmsWidget: React.FC<RecentSmsWidgetProps> = ({
   if (last3Rows.length === 0) return null;
 
   return (
-    <div className="bg-white rounded-2xl border border-emerald-200/80 p-5 mb-6 shadow-xs relative overflow-hidden">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-emerald-200/80 dark:border-slate-800 p-5 mb-6 shadow-xs relative overflow-hidden">
       {/* Decorative background glow */}
       <div className="absolute -right-10 -top-10 w-40 h-40 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none"></div>
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
         <div className="flex items-center space-x-2.5">
-          <div className="p-2 bg-emerald-500/10 text-emerald-600 rounded-xl border border-emerald-500/20">
+          <div className="p-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl border border-emerald-500/20">
             <MessageSquare className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+            <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
               <span>{t.title}</span>
-              <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-100 text-emerald-700 rounded-full border border-emerald-200">
+              <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 rounded-full border border-emerald-200 dark:border-emerald-800">
                 Latest 3
               </span>
             </h2>
-            <p className="text-xs text-slate-500">{t.subtitle}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{t.subtitle}</p>
           </div>
         </div>
       </div>
@@ -130,14 +130,14 @@ export const RecentSmsWidget: React.FC<RecentSmsWidgetProps> = ({
           return (
             <div
               key={row._id || idx}
-              className="bg-slate-50/80 border border-slate-200 hover:border-emerald-400 rounded-xl p-4 transition-all hover:shadow-sm flex flex-col justify-between group relative"
+              className="bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 hover:border-emerald-400 dark:hover:border-emerald-500 rounded-xl p-4 transition-all hover:shadow-sm flex flex-col justify-between group relative"
             >
               <div>
                 {/* Header row with badge & copy */}
-                <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-200/60">
+                <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-200/60 dark:border-slate-700/60">
                   <div className="flex items-center space-x-1.5">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-                    <span className="text-[11px] font-mono font-bold text-slate-600">
+                    <span className="text-[11px] font-mono font-bold text-slate-600 dark:text-slate-400">
                       #{idx + 1} ({t.rowNum} {row._id})
                     </span>
                   </div>
@@ -149,13 +149,13 @@ export const RecentSmsWidget: React.FC<RecentSmsWidgetProps> = ({
                         idx
                       )
                     }
-                    className="flex items-center space-x-1 text-[11px] font-medium text-slate-500 hover:text-emerald-600 transition-colors bg-white border border-slate-200 rounded-lg px-2 py-1"
+                    className="flex items-center space-x-1 text-[11px] font-medium text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1"
                     title="Copy SMS & Timestamp"
                   >
                     {copiedIndex === idx ? (
                       <>
-                        <Check className="w-3 h-3 text-emerald-600" />
-                        <span className="text-emerald-600 font-bold">
+                        <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                        <span className="text-emerald-600 dark:text-emerald-400 font-bold">
                           {t.copied}
                         </span>
                       </>
@@ -170,23 +170,23 @@ export const RecentSmsWidget: React.FC<RecentSmsWidgetProps> = ({
 
                 {/* Sender info if present */}
                 {senderText && (
-                  <div className="text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1">
+                  <div className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1">
                     <span className="text-slate-400">From:</span>
-                    <span className="bg-slate-200/60 px-1.5 py-0.5 rounded text-slate-800 font-mono">
+                    <span className="bg-slate-200/60 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-800 dark:text-slate-200 font-mono">
                       {senderText}
                     </span>
                   </div>
                 )}
 
                 {/* SMS Content */}
-                <div className="text-xs text-slate-800 font-medium leading-relaxed bg-white p-2.5 rounded-lg border border-slate-200/80 mb-3 min-h-[48px] break-words">
+                <div className="text-xs text-slate-800 dark:text-slate-200 font-medium leading-relaxed bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200/80 dark:border-slate-700/80 mb-3 min-h-[48px] break-words">
                   {smsText || <span className="text-slate-400 italic">Empty SMS text</span>}
                 </div>
               </div>
 
               {/* Timestamp footer */}
-              <div className="flex items-center text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-200/60 mt-1">
-                <Clock className="w-3.5 h-3.5 mr-1.5 text-emerald-600 shrink-0" />
+              <div className="flex items-center text-[11px] font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1.5 rounded-lg border border-emerald-200/60 dark:border-emerald-800/60 mt-1">
+                <Clock className="w-3.5 h-3.5 mr-1.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                 <span className="truncate">
                   {timeText || 'No timestamp specified'}
                 </span>

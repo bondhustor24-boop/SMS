@@ -1,5 +1,5 @@
 import React from 'react';
-import { RefreshCw, ExternalLink, ShieldCheck, Globe, Database, User, LogIn, LogOut, Crown, Lock } from 'lucide-react';
+import { RefreshCw, ExternalLink, ShieldCheck, Globe, Database, User, LogIn, LogOut, Crown, Lock, Sun, Moon } from 'lucide-react';
 import { UserSession } from '../types';
 
 interface HeaderProps {
@@ -16,6 +16,8 @@ interface HeaderProps {
   setAutoRefreshInterval: (seconds: number) => void;
   lang: 'bn' | 'en';
   setLang: (lang: 'bn' | 'en') => void;
+  theme: 'light' | 'dark';
+  setTheme: (theme: 'light' | 'dark') => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -32,6 +34,8 @@ export const Header: React.FC<HeaderProps> = ({
   setAutoRefreshInterval,
   lang,
   setLang,
+  theme,
+  setTheme,
 }) => {
   const t = {
     en: {
@@ -143,6 +147,25 @@ export const Header: React.FC<HeaderProps> = ({
                 <ExternalLink className="w-3.5 h-3.5 ml-1" />
               </a>
             )}
+
+            {/* Theme Switcher */}
+            <button
+              onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+              className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs transition-colors"
+              title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+            >
+              {theme === 'light' ? (
+                <>
+                  <Moon className="w-3.5 h-3.5 text-amber-300" />
+                  <span className="font-semibold text-slate-200">{lang === 'bn' ? 'ডার্ক' : 'Dark'}</span>
+                </>
+              ) : (
+                <>
+                  <Sun className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                  <span className="font-semibold text-amber-300">{lang === 'bn' ? 'লাইট' : 'Light'}</span>
+                </>
+              )}
+            </button>
 
             {/* Language Switcher */}
             <button

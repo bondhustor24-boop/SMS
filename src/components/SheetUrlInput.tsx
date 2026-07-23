@@ -65,7 +65,7 @@ export const SheetUrlInput: React.FC<SheetUrlInputProps> = ({
       <div className="flex justify-end">
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="inline-flex items-center space-x-1.5 text-xs text-slate-500 hover:text-slate-800 bg-white border border-slate-200 hover:border-slate-300 rounded-xl px-3 py-1.5 transition-all shadow-2xs font-medium"
+          className="inline-flex items-center space-x-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 rounded-xl px-3 py-1.5 transition-all shadow-2xs font-medium"
         >
           <Settings2 className="w-3.5 h-3.5 text-slate-400" />
           <span>{isExpanded ? t.toggleHide : t.toggleShow}</span>
@@ -79,25 +79,25 @@ export const SheetUrlInput: React.FC<SheetUrlInputProps> = ({
 
       {/* Expandable Form */}
       {isExpanded && (
-        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-sm mt-2 animate-in fade-in duration-200">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200 dark:border-slate-800 shadow-sm mt-2 animate-in fade-in duration-200">
           {!isSuperAdmin && (
-            <div className="mb-3 p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-center gap-2">
-              <Lock className="w-4 h-4 text-amber-600 shrink-0" />
+            <div className="mb-3 p-2.5 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800/50 rounded-xl text-xs text-amber-800 dark:text-amber-300 flex items-center gap-2">
+              <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
               <span>{t.lockedNotice}</span>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-3">
             <div className="flex items-center justify-between">
-              <label className="flex items-center text-xs font-semibold text-slate-700 uppercase tracking-wider space-x-1.5">
-                <Link2 className="w-4 h-4 text-emerald-600" />
+              <label className="flex items-center text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider space-x-1.5">
+                <Link2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 <span>{t.label}</span>
               </label>
               {isSuperAdmin && (
                 <button
                   type="button"
                   onClick={handleResetToDefault}
-                  className="inline-flex items-center space-x-1 text-xs text-emerald-600 hover:text-emerald-700 font-medium underline transition-colors"
+                  className="inline-flex items-center space-x-1 text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 font-medium underline transition-colors"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>{t.defaultBtn}</span>
@@ -115,8 +115,8 @@ export const SheetUrlInput: React.FC<SheetUrlInputProps> = ({
                   placeholder={t.placeholder}
                   className={`w-full pl-3.5 pr-10 py-2.5 text-xs sm:text-sm border rounded-xl font-mono ${
                     isSuperAdmin
-                      ? 'bg-slate-50 border-slate-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-800'
-                      : 'bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed'
+                      ? 'bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-800 dark:text-slate-100'
+                      : 'bg-slate-100 dark:bg-slate-800/50 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 cursor-not-allowed'
                   }`}
                 />
               </div>

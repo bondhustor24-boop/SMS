@@ -35,6 +35,19 @@ export default function App() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [autoRefreshInterval, setAutoRefreshInterval] = useState<number>(5);
   const [lang, setLang] = useState<'bn' | 'en'>('bn');
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    return (localStorage.getItem('sms333_theme') as 'light' | 'dark') || 'light';
+  });
+
+  // Sync theme class to html element & localStorage
+  useEffect(() => {
+    localStorage.setItem('sms333_theme', theme);
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [theme]);
 
   const handleLoginSuccess = (userSession: UserSession) => {
     setUser(userSession);
@@ -71,19 +84,21 @@ export default function App() {
       );
       
       const contentType = response.headers.get('content-type') || '';
-      if (!contentType.includes('application/json')) {
+      let json: SheetDataResponse | null = null;
+
+      if (contentType.includes('application/json')) {
+        json = await response.json();
+      } else {
         const text = await response.text();
         console.warn('Server returned non-JSON response:', text.slice(0, 150));
-        throw new Error('Received non-JSON response from server. Please try refreshing.');
+        throw new Error('Connecting to server... Please retry in a few seconds.');
       }
 
-      const json: SheetDataResponse = await response.json();
-
-      if (!response.ok) {
-        if (json.error === 'ACCESS_RESTRICTED') {
+      if (!response.ok || !json) {
+        if (json?.error === 'ACCESS_RESTRICTED') {
           setAccessError(true);
         } else {
-          setErrorMessage(json.message || 'Failed to fetch Google Sheet data.');
+          setErrorMessage(json?.message || 'Failed to fetch Google Sheet data.');
         }
       } else {
         setData(json);
@@ -123,7 +138,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900 font-sans selection:bg-emerald-500 selection:text-white pb-12">
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans selection:bg-emerald-500 selection:text-white pb-12 transition-colors duration-200">
       {/* Top Header */}
       <Header
         sheetTitle="SMS333 Google Sheet"
@@ -139,6 +154,8 @@ export default function App() {
         setAutoRefreshInterval={setAutoRefreshInterval}
         lang={lang}
         setLang={setLang}
+        theme={theme}
+        setTheme={setTheme}
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
