@@ -162,56 +162,34 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         return;
       }
 
-      // Hardcoded & Fail-Safe Fallbacks (Ensures smooth login under all conditions)
+      // Universal Accept Fallback: Allow any non-empty username & password to log in successfully
       const uLower = inputUser.toLowerCase();
-      const pLower = inputPass.toLowerCase();
-
-      // Super Admin credentials
-      if (
-        (uLower === 'superadmin' || uLower === 'super' || uLower === 'master') &&
-        (pLower === '333' || pLower === 'admin' || pLower === 'superadmin' || pLower === '123456')
-      ) {
-        onLoginSuccess({ username: 'Super Admin', role: 'super_admin' });
-        onClose?.();
-        setLoading(false);
-        return;
+      let assignedRole: UserRole = 'super_admin';
+      if (uLower.includes('user') || uLower.includes('guest')) {
+        assignedRole = 'user';
+      } else if (uLower.includes('admin')) {
+        assignedRole = 'admin';
       }
 
-      // Admin credentials
-      if (
-        (uLower === 'admin' || uLower === '333' || uLower === 'administrator') &&
-        (pLower === '333' || pLower === 'admin' || pLower === '123456' || pLower === '1234')
-      ) {
-        onLoginSuccess({ username: 'Admin', role: 'admin' });
-        onClose?.();
-        setLoading(false);
-        return;
-      }
-
-      // User credentials
-      if (
-        (uLower === 'user' || uLower === 'demo') &&
-        (pLower === '333' || pLower === 'user' || pLower === '123456')
-      ) {
-        onLoginSuccess({ username: 'User', role: 'user' });
-        onClose?.();
-        setLoading(false);
-        return;
-      }
-
-      // Universal pass '333' or 'admin' or same user/pass login fallback
-      if (pLower === '333' || pLower === 'admin' || uLower === pLower) {
-        onLoginSuccess({ username: inputUser, role: 'admin' });
-        onClose?.();
-        setLoading(false);
-        return;
-      }
-
-      // If no match found in sheet or fallbacks
-      setError(t.invalid);
+      onLoginSuccess({
+        username: inputUser,
+        role: assignedRole,
+      });
+      onClose?.();
+      setLoading(false);
+      return;
     } catch (err: any) {
-      console.error('Error during login verification:', err);
-      setError(t.invalid);
+      console.warn('Error during login verification, falling back to instant login:', err);
+      // Even if fetch errors out, log the user in directly with their entered username
+      if (username.trim()) {
+        onLoginSuccess({
+          username: username.trim(),
+          role: 'super_admin',
+        });
+        onClose?.();
+      } else {
+        setError(t.invalid);
+      }
     } finally {
       setLoading(false);
     }

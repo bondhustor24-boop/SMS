@@ -78,42 +78,56 @@ export default function App() {
     setAccessError(false);
     setErrorMessage(null);
 
-    try {
-      const response = await fetch(
-        `/api/sheet-data?url=${encodeURIComponent(targetUrl)}`
-      );
-      
-      const contentType = response.headers.get('content-type') || '';
-      let json: SheetDataResponse | null = null;
+    let attempts = 0;
+    const maxAttempts = 3;
+    let success = false;
 
-      if (contentType.includes('application/json')) {
-        json = await response.json();
-      } else {
-        const text = await response.text();
-        console.warn('Server returned non-JSON response:', text.slice(0, 150));
-        throw new Error('Connecting to server... Please retry in a few seconds.');
-      }
-
-      if (!response.ok || !json) {
-        if (json?.error === 'ACCESS_RESTRICTED') {
-          setAccessError(true);
-        } else {
-          setErrorMessage(json?.message || 'Failed to fetch Google Sheet data.');
-        }
-      } else {
-        setData(json);
-      }
-    } catch (error: any) {
-      console.error('Error fetching sheet data:', error);
-      if (!dataRef.current) {
-        setErrorMessage(
-          error?.message || 'Network error while reaching server.'
+    while (attempts < maxAttempts && !success) {
+      attempts++;
+      try {
+        const response = await fetch(
+          `/api/sheet-data?url=${encodeURIComponent(targetUrl)}`
         );
+
+        let json: SheetDataResponse | null = null;
+        try {
+          json = await response.json();
+        } catch (e) {
+          // If JSON parsing failed (e.g. server was restarting/returning HTML)
+          if (attempts < maxAttempts) {
+            await new Promise((resolve) => setTimeout(resolve, 1500));
+            continue;
+          } else {
+            throw new Error('Connecting to server... Please retry in a few seconds.');
+          }
+        }
+
+        if (!response.ok || !json) {
+          if (json?.error === 'ACCESS_RESTRICTED') {
+            setAccessError(true);
+          } else {
+            setErrorMessage(json?.message || 'Failed to fetch Google Sheet data.');
+          }
+        } else {
+          setData(json);
+        }
+        success = true;
+      } catch (error: any) {
+        if (attempts < maxAttempts) {
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+        } else {
+          console.error('Error fetching sheet data:', error);
+          if (!dataRef.current) {
+            setErrorMessage(
+              error?.message || 'Network error while reaching server.'
+            );
+          }
+        }
       }
-    } finally {
-      setLoading(false);
-      setIsSyncing(false);
     }
+
+    setLoading(false);
+    setIsSyncing(false);
   }, []);
 
   // Initial load
