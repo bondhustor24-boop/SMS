@@ -82,12 +82,14 @@ export default function App() {
     try {
       const json = await fetchGoogleSheetData(targetUrl);
 
-      if (json.error === 'ACCESS_RESTRICTED') {
-        setAccessError(true);
-      } else if (json.error) {
-        setErrorMessage(json.message || 'Failed to fetch Google Sheet data.');
-      } else {
+      if (json.rows && json.rows.length > 0) {
         setData(json);
+      }
+
+      if (json.error === 'ACCESS_RESTRICTED' && (!json.rows || json.rows.length === 0)) {
+        setAccessError(true);
+      } else if (json.error && (!json.rows || json.rows.length === 0)) {
+        setErrorMessage(json.message || 'Failed to fetch Google Sheet data.');
       }
     } catch (error: any) {
       console.error('Error fetching sheet data:', error);

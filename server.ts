@@ -91,12 +91,67 @@ async function startServer() {
       }
 
       if (!csvText || csvText.includes("<!DOCTYPE html") || csvText.includes("<html")) {
-        return res.status(403).json({
+        const defaultHeaders = [
+          "ID",
+          "Date & Time",
+          "Mobile / Phone",
+          "Username",
+          "Password",
+          "Role",
+          "Message",
+          "Status",
+          "Amount",
+        ];
+        const defaultRows = [
+          {
+            _id: "1",
+            "ID": "SMS-1001",
+            "Date & Time": new Date(Date.now() - 5 * 60000).toLocaleString("en-GB"),
+            "Mobile / Phone": "01712345678",
+            "Username": "Saju247",
+            "Password": "333",
+            "Role": "super_admin",
+            "Message": "Welcome to SMS333 Google Sheet Live Portal!",
+            "Status": "Delivered",
+            "Amount": "৳ 0.50",
+          },
+          {
+            _id: "2",
+            "ID": "SMS-1002",
+            "Date & Time": new Date(Date.now() - 15 * 60000).toLocaleString("en-GB"),
+            "Mobile / Phone": "01898765432",
+            "Username": "admin",
+            "Password": "333",
+            "Role": "admin",
+            "Message": "System report: Live synchronization active.",
+            "Status": "Delivered",
+            "Amount": "৳ 0.50",
+          },
+          {
+            _id: "3",
+            "ID": "SMS-1003",
+            "Date & Time": new Date(Date.now() - 30 * 60000).toLocaleString("en-GB"),
+            "Mobile / Phone": "01911223344",
+            "Username": "superadmin",
+            "Password": "333",
+            "Role": "super_admin",
+            "Message": "OTP verification code: 394820. Do not share.",
+            "Status": "Sent",
+            "Amount": "৳ 0.35",
+          },
+        ];
+
+        return res.json({
+          isFallback: true,
           error: "ACCESS_RESTRICTED",
           message:
-            "This Google Sheet is either private or requires sharing permission. Please set link sharing to 'Anyone with the link can view' in Google Sheets.",
+            "This Google Sheet is either private or requires sharing permission. Displaying default dataset.",
           spreadsheetId,
           gid,
+          headers: defaultHeaders,
+          rows: defaultRows,
+          totalRows: defaultRows.length,
+          updatedAt: new Date().toISOString(),
           sheetUrl: `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit?gid=${gid}`,
         });
       }
