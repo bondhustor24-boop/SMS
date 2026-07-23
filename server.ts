@@ -43,27 +43,27 @@ async function startServer() {
         }
       }
 
-      // Try multiple fetch endpoints from Google Sheets
-      const gvizCsvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&gid=${gid}`;
-      const exportCsvUrlWithGid = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${gid}`;
-      const pubCsvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/pub?output=csv&gid=${gid}`;
-      const exportCsvUrlDefault = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv`;
-
+      // Fetch all endpoints in parallel and pick the fastest successful response
       let csvText = "";
-      let fetchSuccess = false;
+      let isAccessRestricted = false;
 
-      // Endpoint candidate list - gviz is fastest and most reliable
-      const urlCandidates = [gvizCsvUrl, exportCsvUrlWithGid, pubCsvUrl, exportCsvUrlDefault];
+      const urlCandidates = [
+        `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${gid}`,
+        `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&gid=${gid}`,
+        `https://docs.google.com/spreadsheets/d/${spreadsheetId}/pub?output=csv&gid=${gid}`,
+        `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv`,
+      ];
 
-      for (const urlCandidate of urlCandidates) {
-        if (fetchSuccess && csvText) break;
+      const fetchCandidate = async (urlCandidate: string): Promise<string> => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
         try {
           const resp = await fetch(urlCandidate, {
             headers: {
               "User-Agent":
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             },
-            signal: AbortSignal.timeout(10000),
+            signal: controller.signal,
           });
           if (resp.ok) {
             const text = await resp.text();
@@ -73,16 +73,24 @@ async function startServer() {
               !text.includes("<html") &&
               !text.includes("google-site-verification")
             ) {
-              csvText = text;
-              fetchSuccess = true;
+              return text;
+            } else if (text && (text.includes("<!DOCTYPE html") || text.includes("<html"))) {
+              isAccessRestricted = true;
             }
           }
-        } catch (err: any) {
-          console.warn(`Failed fetching sheet candidate (${urlCandidate}):`, err?.message || String(err));
+        } finally {
+          clearTimeout(timeoutId);
         }
+        throw new Error(`Candidate failed: ${urlCandidate}`);
+      };
+
+      try {
+        csvText = await Promise.any(urlCandidates.map((url) => fetchCandidate(url)));
+      } catch (err) {
+        csvText = "";
       }
 
-      if (!fetchSuccess || csvText.includes("<!DOCTYPE html") || csvText.includes("<html")) {
+      if (!csvText || csvText.includes("<!DOCTYPE html") || csvText.includes("<html")) {
         return res.status(403).json({
           error: "ACCESS_RESTRICTED",
           message:

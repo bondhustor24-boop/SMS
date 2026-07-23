@@ -37,8 +37,8 @@ export async function fetchGoogleSheetData(targetUrl: string): Promise<SheetData
   }
 
   const candidateUrls = [
-    `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&gid=${gid}`,
     `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${gid}`,
+    `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&gid=${gid}`,
     `https://docs.google.com/spreadsheets/d/${spreadsheetId}/pub?output=csv&gid=${gid}`,
     `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv`,
   ];
@@ -46,21 +46,29 @@ export async function fetchGoogleSheetData(targetUrl: string): Promise<SheetData
   let csvText = '';
   let isAccessRestricted = false;
 
-  for (const candidateUrl of candidateUrls) {
+  const fetchCandidate = async (urlCandidate: string): Promise<string> => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
     try {
-      const res = await fetch(candidateUrl);
+      const res = await fetch(urlCandidate, { signal: controller.signal });
       if (res.ok) {
         const text = await res.text();
         if (text && !text.includes('<!DOCTYPE html') && !text.includes('<html')) {
-          csvText = text;
-          break;
+          return text;
         } else if (text && (text.includes('<!DOCTYPE html') || text.includes('<html'))) {
           isAccessRestricted = true;
         }
       }
-    } catch (err) {
-      console.warn('Client direct fetch failed for candidate:', candidateUrl, err);
+    } finally {
+      clearTimeout(timeoutId);
     }
+    throw new Error(`Client candidate failed: ${urlCandidate}`);
+  };
+
+  try {
+    csvText = await Promise.any(candidateUrls.map((url) => fetchCandidate(url)));
+  } catch (err) {
+    csvText = '';
   }
 
   if (isAccessRestricted && !csvText) {
