@@ -146,7 +146,7 @@ export default function App() {
         setTheme={setTheme}
       />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+      <main className="max-w-7xl mx-auto px-2.5 sm:px-6 pt-3 sm:pt-6">
         {!user ? (
           /* Locked Dashboard Message & Login Screen */
           <div className="min-h-[60vh] flex flex-col items-center justify-center text-center p-6">
