@@ -12,6 +12,8 @@ interface HeaderProps {
   onLoginClick: () => void;
   onLogoutClick: () => void;
   onDevicesClick?: () => void;
+  onFirebaseUsersClick?: () => void;
+  onProfileClick?: () => void;
   onRefresh: () => void;
   autoRefreshInterval: number;
   setAutoRefreshInterval: (seconds: number) => void;
@@ -20,6 +22,7 @@ interface HeaderProps {
   theme: 'light' | 'dark';
   setTheme: (theme: 'light' | 'dark') => void;
 }
+
 
 export const Header: React.FC<HeaderProps> = ({
   sheetTitle,
@@ -31,6 +34,8 @@ export const Header: React.FC<HeaderProps> = ({
   onLoginClick,
   onLogoutClick,
   onDevicesClick,
+  onFirebaseUsersClick,
+  onProfileClick,
   onRefresh,
   autoRefreshInterval,
   setAutoRefreshInterval,
@@ -39,6 +44,7 @@ export const Header: React.FC<HeaderProps> = ({
   theme,
   setTheme,
 }) => {
+
   const t = {
     en: {
       title: "SMS333 Google Sheet Live Viewer",
@@ -169,6 +175,17 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Login / User Status */}
             {user ? (
               <div className="flex items-center space-x-1.5">
+                {user.role === 'super_admin' && onFirebaseUsersClick && (
+                  <button
+                    onClick={onFirebaseUsersClick}
+                    className="flex items-center space-x-1 px-2 py-0.5 rounded-md bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 border border-orange-500/40 text-[10px] font-semibold transition-colors shadow-xs"
+                    title="Firebase User Database Control"
+                  >
+                    <Crown className="w-3 h-3 text-orange-400" />
+                    <span>{lang === 'bn' ? 'ফায়ারবেস ইউজার' : 'Firebase Users'}</span>
+                  </button>
+                )}
+
                 {user.role === 'super_admin' && onDevicesClick && (
                   <button
                     onClick={onDevicesClick}
@@ -177,6 +194,18 @@ export const Header: React.FC<HeaderProps> = ({
                   >
                     <Monitor className="w-3 h-3 text-amber-400" />
                     <span>{lang === 'bn' ? 'ডিভাইস কন্ট্রোল' : 'Device Control'}</span>
+                  </button>
+                )}
+
+
+                {onProfileClick && (
+                  <button
+                    onClick={onProfileClick}
+                    className="flex items-center space-x-1 px-2 py-0.5 rounded-md bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[10px] font-semibold transition-colors shadow-xs"
+                    title="Edit Profile, Auto IP & Device Info"
+                  >
+                    <User className="w-3 h-3 text-emerald-400" />
+                    <span>{lang === 'bn' ? 'প্রোফাইল' : 'Profile'}</span>
                   </button>
                 )}
 
@@ -189,7 +218,11 @@ export const Header: React.FC<HeaderProps> = ({
                       : 'bg-blue-950/80 border-blue-500/40 text-blue-200'
                   }`}
                 >
-                  <div className="flex items-center space-x-1 font-semibold">
+                  <button
+                    onClick={onProfileClick}
+                    className="flex items-center space-x-1 font-semibold hover:underline"
+                    title="Click to edit profile"
+                  >
                     {user.role === 'super_admin' ? (
                       <Crown className="w-3 h-3 text-amber-400" />
                     ) : (
@@ -207,7 +240,7 @@ export const Header: React.FC<HeaderProps> = ({
                     >
                       {user.role.replace('_', ' ')}
                     </span>
-                  </div>
+                  </button>
                   <button
                     onClick={onLogoutClick}
                     className="p-0.5 hover:bg-slate-800 text-slate-400 hover:text-red-400 rounded transition-colors ml-0.5"

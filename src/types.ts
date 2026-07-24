@@ -47,3 +47,16 @@ export interface DeviceSession {
   status: 'active' | 'blocked' | 'logged_out';
   isCurrentSession?: boolean;
 }
+
+export interface FirebaseUserRecord {
+  id?: string;
+  username: string;
+  password: string;
+  fullName: string;
+  emailAddress: string;
+  ipAddress: string;
+  role: UserRole;
+  status: 'active' | 'suspended' | 'blocked';
+  createdAt: string;
+}
+

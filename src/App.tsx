@@ -9,6 +9,10 @@ import { DataTable } from './components/DataTable';
 import { AccessInstructionsModal } from './components/AccessInstructionsModal';
 import { LoginModal } from './components/LoginModal';
 import { DeviceManagementModal } from './components/DeviceManagementModal';
+import { FirebaseUserManagerModal } from './components/FirebaseUserManagerModal';
+import { UserProfileModal } from './components/UserProfileModal';
+import { seedDefaultSuperAdminInFirebase } from './services/firebaseUserService';
+
 import {
   isUserBlocked,
   getStoredSessions,
@@ -38,6 +42,14 @@ export default function App() {
   });
   const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
   const [isDeviceModalOpen, setIsDeviceModalOpen] = useState<boolean>(false);
+  const [isFirebaseModalOpen, setIsFirebaseModalOpen] = useState<boolean>(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState<boolean>(false);
+
+  // Initialize Firebase default Super Admin if needed
+  useEffect(() => {
+    seedDefaultSuperAdminInFirebase();
+  }, []);
+
   const [unreadNotifs, setUnreadNotifs] = useState<DeviceNotification[]>([]);
   const [data, setData] = useState<SheetDataResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -190,6 +202,8 @@ export default function App() {
         onLoginClick={() => setIsLoginModalOpen(true)}
         onLogoutClick={handleLogout}
         onDevicesClick={() => setIsDeviceModalOpen(true)}
+        onFirebaseUsersClick={() => setIsFirebaseModalOpen(true)}
+        onProfileClick={() => setIsProfileModalOpen(true)}
         onRefresh={() => fetchSheetData(sheetUrl, false)}
         autoRefreshInterval={autoRefreshInterval}
         setAutoRefreshInterval={setAutoRefreshInterval}
@@ -198,6 +212,30 @@ export default function App() {
         theme={theme}
         setTheme={setTheme}
       />
+
+      {/* Super Admin Firebase User Database Management Modal */}
+      {user?.role === 'super_admin' && (
+        <FirebaseUserManagerModal
+          isOpen={isFirebaseModalOpen}
+          onClose={() => setIsFirebaseModalOpen(false)}
+          lang={lang}
+        />
+      )}
+
+      {/* User Profile Edit Modal */}
+      {user && (
+        <UserProfileModal
+          isOpen={isProfileModalOpen}
+          onClose={() => setIsProfileModalOpen(false)}
+          currentUser={user}
+          onUpdateSessionUser={(newUsername) => {
+            const updated = { ...user, username: newUsername };
+            setUser(updated);
+            localStorage.setItem('sms333_user_session', JSON.stringify(updated));
+          }}
+          lang={lang}
+        />
+      )}
 
       {/* Super Admin Device & Session Management Modal */}
       {user?.role === 'super_admin' && (
@@ -208,6 +246,7 @@ export default function App() {
           lang={lang}
         />
       )}
+
 
       {/* Real-Time Live Notification Alert Modal */}
       {unreadNotifs.length > 0 && (

@@ -1,0 +1,73 @@
+{
+  "entities": {
+    "users": {
+      "title": "User",
+      "description": "App users including super admins and regular users with login credentials, full name, email, and IP tracking.",
+      "type": "object",
+      "properties": {
+        "username": {
+          "type": "string",
+          "description": "Unique username used for system login."
+        },
+        "password": {
+          "type": "string",
+          "description": "User login password."
+        },
+        "ipAddress": {
+          "type": "string",
+          "description": "User IP address recorded during registration or last activity."
+        },
+        "fullName": {
+          "type": "string",
+          "description": "User full display name."
+        },
+        "emailAddress": {
+          "type": "string",
+          "description": "User contact email address."
+        },
+        "role": {
+          "type": "string",
+          "description": "User authority role (e.g., super_admin or user)."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp when the user record was created."
+        }
+      },
+      "required": [
+        "username",
+        "password",
+        "fullName",
+        "emailAddress",
+        "role"
+      ]
+    },
+    "app_settings": {
+      "title": "AppSettings",
+      "description": "Global application configurations like column visibility and locks managed by Super Admin.",
+      "type": "object",
+      "properties": {
+        "hiddenColumns": {
+          "type": "object",
+          "description": "Map of hidden column keys."
+        },
+        "lockedColumns": {
+          "type": "object",
+          "description": "Map of locked column keys by super admin."
+        },
+        "superAdminHiddenColumns": {
+          "type": "object",
+          "description": "Map of columns super admin forced hidden for regular users."
+        },
+        "smsTemplateStyle": {
+          "type": "string",
+          "description": "Active SMS template design style (cards, chat, compact)."
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Last update timestamp."
+        }
+      }
+    }
+  }
+}

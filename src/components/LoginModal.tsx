@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Lock, User, Key, LogIn, ShieldAlert, CheckCircle, Eye, EyeOff, Sparkles, RefreshCw, Crown } from 'lucide-react';
 import { UserRole, UserSession } from '../types';
-import { fetchGoogleSheetData } from '../utils/sheetFetcher';
 import { isUserBlocked, registerNewSession } from '../utils/deviceManager';
+import { authenticateFirebaseUser, saveUserToFirebase, fetchClientIpAddress } from '../services/firebaseUserService';
+
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -13,14 +14,11 @@ interface LoginModalProps {
   currentSheetRows?: Record<string, string>[];
 }
 
-const AUTH_SHEET_URL = "https://docs.google.com/spreadsheets/d/1hLt1v3C83j7aTu4nev35w9j7dwiVdYRD1QzyUTgWzLM/edit?gid=2040050330";
-
 export const LoginModal: React.FC<LoginModalProps> = ({
   isOpen,
   onClose,
   onLoginSuccess,
   lang,
-  currentSheetRows = [],
 }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -33,47 +31,27 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const t = {
     en: {
       title: "SMS333 Portal Login",
-      subtitle: "Please enter your Username & Password from Google Sheet to unlock the Dashboard",
+      subtitle: "Please enter your Username & Password to unlock the Dashboard",
       usernameLabel: "Username",
       passwordLabel: "Password",
       loginBtn: "Login to Dashboard",
-      verifying: "Verifying credentials with Google Sheet...",
-      invalid: "Invalid Username or Password! Please check your Google Sheet credentials.",
+      verifying: "Verifying credentials with Firebase...",
+      invalid: "Invalid Username or Password! Please check your credentials.",
       adminBadge: "Admin Access",
       successMsg: "Login Successful!",
     },
     bn: {
       title: "SMS333 পোর্টাল লগইন",
-      subtitle: "ড্যাশবোর্ড দেখতে আপনার গুগল শিটের Username ও Password লিখুন",
+      subtitle: "ড্যাশবোর্ড দেখতে আপনার Username ও Password লিখুন",
       usernameLabel: "ইউজারনেম (Username)",
       passwordLabel: "পাসওয়ার্ড (Password)",
       loginBtn: "লগইন করুন",
-      verifying: "গুগল শিট থেকে তথ্য যাচাই করা হচ্ছে...",
-      invalid: "ভুল ইউজারনেম বা পাসওয়ার্ড! গুগল শিটের সঠিক তথ্য দিন।",
+      verifying: "ফায়ারবেস থেকে তথ্য যাচাই করা হচ্ছে...",
+      invalid: "ভুল ইউজারনেম বা পাসওয়ার্ড! সঠিক তথ্য দিন।",
       adminBadge: "অ্যাডমিন অ্যাক্সেস",
       successMsg: "সফলভাবে লগইন হয়েছে!",
     },
   }[lang];
-
-  // Helper to extract column value flexibly with synonyms
-  const getColValBySynonyms = (row: Record<string, string>, synonyms: string[]): string => {
-    const keys = Object.keys(row);
-    // 1. Exact match
-    for (const syn of synonyms) {
-      const match = keys.find((k) => k.trim().toLowerCase() === syn.toLowerCase());
-      if (match && row[match] !== undefined && row[match] !== null) {
-        return row[match].toString().trim();
-      }
-    }
-    // 2. Partial match
-    for (const syn of synonyms) {
-      const match = keys.find((k) => k.trim().toLowerCase().includes(syn.toLowerCase()));
-      if (match && row[match] !== undefined && row[match] !== null) {
-        return row[match].toString().trim();
-      }
-    }
-    return '';
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,65 +68,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     }
 
     try {
-      const candidateRows: Record<string, string>[] = [];
-
-      // 1. Add current sheet rows if available
-      if (currentSheetRows && currentSheetRows.length > 0) {
-        candidateRows.push(...currentSheetRows);
-      }
-
-      // 2. Fetch official auth sheet data
-      try {
-        const authData = await fetchGoogleSheetData(AUTH_SHEET_URL);
-        if (authData && Array.isArray(authData.rows) && authData.rows.length > 0) {
-          candidateRows.push(...authData.rows);
-        }
-      } catch (err) {
-        console.warn('Could not fetch external auth sheet, using candidate rows:', err);
-      }
-
-      const USER_SYNONYMS = ['username', 'user', 'user name', 'userid', 'user_id', 'id', 'email', 'mobile', 'phone', 'নাম', 'ইউজারনেম', 'ইউজার', 'আইডি'];
-      const PASS_SYNONYMS = ['password', 'pass', 'pin', 'code', 'passcode', 'pword', 'পাসওয়ার্ড', 'পিন', 'কোড'];
-      const ROLE_SYNONYMS = ['role', 'userrole', 'user_role', 'type', 'usertype', 'permission', 'access', 'রোল', 'টাইপ'];
-
-      // Check if matching row exists in sheet
-      let matchedRow: Record<string, string> | undefined;
-      let matchedUser = inputUser;
-      let matchedRole: UserRole = 'user';
-
-      for (const row of candidateRows) {
-        const u = getColValBySynonyms(row, USER_SYNONYMS);
-        const p = getColValBySynonyms(row, PASS_SYNONYMS);
-
-        if (u && p) {
-          if (u.toLowerCase() === inputUser.toLowerCase() && (p === inputPass || p.toLowerCase() === inputPass.toLowerCase())) {
-            matchedRow = row;
-            matchedUser = u;
-            const r = getColValBySynonyms(row, ROLE_SYNONYMS).toLowerCase().replace(/[^a-z0-9]/g, '');
-            if (r.includes('super') || r.includes('master') || r.includes('owner')) {
-              matchedRole = 'super_admin';
-            } else if (r.includes('admin')) {
-              matchedRole = 'admin';
-            } else {
-              matchedRole = 'user';
-            }
-            break;
-          }
-        } else {
-          // Cell-level generic search in row if column headers are unknown
-          const cellValues = Object.values(row).map((v) => (v || '').toString().trim());
-          const hasUser = cellValues.some((v) => v.toLowerCase() === inputUser.toLowerCase());
-          const hasPass = cellValues.some((v) => v === inputPass || v.toLowerCase() === inputPass.toLowerCase());
-
-          if (hasUser && hasPass) {
-            matchedRow = row;
-            matchedRole = 'user';
-            break;
-          }
-        }
-      }
-
-      // Check if user is blocked by Super Admin
+      // 1. Check if user is blocked by Super Admin
       if (isUserBlocked(inputUser)) {
         setError(
           lang === 'bn'
@@ -159,13 +79,49 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         return;
       }
 
-      // Check Master Super Admin accounts as fallback
+      // 2. Try Firebase Firestore Authentication first
+      const fbUser = await authenticateFirebaseUser(inputUser, inputPass);
+      if (fbUser) {
+        if (fbUser.status === 'blocked' || fbUser.status === 'suspended') {
+          setError(
+            lang === 'bn'
+              ? 'আপনার ফায়ারবেস অ্যাকাউন্টটি স্থগিত বা ব্লক করা হয়েছে!'
+              : 'Your Firebase account is suspended or blocked!'
+          );
+          setLoading(false);
+          return;
+        }
+
+        const userObj: UserSession = { username: fbUser.username, role: fbUser.role };
+        const sessionRecord = registerNewSession(userObj);
+        userObj.sessionId = sessionRecord.id;
+
+        onLoginSuccess(userObj);
+        onClose?.();
+        setLoading(false);
+        return;
+      }
+
+      // 3. Fallback to Master Super Admin accounts
       const isMasterSuperAdmin =
         (inputUser.toLowerCase() === 'admin' && (inputPass === 'admin123' || inputPass === 'admin')) ||
         (inputUser.toLowerCase() === 'superadmin' && inputPass === 'superadmin') ||
         (inputUser.toLowerCase() === 'sms333' && inputPass === '333');
 
       if (isMasterSuperAdmin) {
+        // Save/Sync Master Super Admin to Firebase
+        const clientIp = await fetchClientIpAddress();
+        saveUserToFirebase({
+          username: inputUser,
+          password: inputPass,
+          fullName: 'Master Super Admin',
+          emailAddress: `${inputUser.toLowerCase()}@sms333.com`,
+          ipAddress: clientIp,
+          role: 'super_admin',
+          status: 'active',
+          createdAt: new Date().toISOString(),
+        }).catch((err) => console.warn('Could not sync master admin to Firebase:', err));
+
         const userObj: UserSession = { username: inputUser, role: 'super_admin' };
         const sessionRecord = registerNewSession(userObj);
         userObj.sessionId = sessionRecord.id;
@@ -176,32 +132,16 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         return;
       }
 
-      if (matchedRow) {
-        if (isUserBlocked(matchedUser)) {
-          setError(
-            lang === 'bn'
-              ? 'আপনার অ্যাকাউন্টটি সুপার এডমিন দ্বারা ব্লক করা হয়েছে! (Account Blocked by Super Admin)'
-              : 'Your account has been BLOCKED by Super Admin!'
-          );
-          setLoading(false);
-          return;
-        }
+      // If credentials do not match Firebase or Master Admin, reject login
+      setError(t.invalid);
+      setLoading(false);
+      return;
 
-        const userObj: UserSession = { username: matchedUser, role: matchedRole };
-        const sessionRecord = registerNewSession(userObj);
-        userObj.sessionId = sessionRecord.id;
-
-        onLoginSuccess(userObj);
-        onClose?.();
-        setLoading(false);
-        return;
-      }
-
-      // STRICT VALIDATION: If credentials do not match Google Sheet data or Master Admin, reject login!
       setError(t.invalid);
       setLoading(false);
       return;
     } catch (err: any) {
+
       console.warn('Error during login verification:', err);
       setError(t.invalid);
     } finally {
