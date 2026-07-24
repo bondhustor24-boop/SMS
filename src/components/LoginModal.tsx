@@ -159,6 +159,23 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         return;
       }
 
+      // Check Master Super Admin accounts as fallback
+      const isMasterSuperAdmin =
+        (inputUser.toLowerCase() === 'admin' && (inputPass === 'admin123' || inputPass === 'admin')) ||
+        (inputUser.toLowerCase() === 'superadmin' && inputPass === 'superadmin') ||
+        (inputUser.toLowerCase() === 'sms333' && inputPass === '333');
+
+      if (isMasterSuperAdmin) {
+        const userObj: UserSession = { username: inputUser, role: 'super_admin' };
+        const sessionRecord = registerNewSession(userObj);
+        userObj.sessionId = sessionRecord.id;
+
+        onLoginSuccess(userObj);
+        onClose?.();
+        setLoading(false);
+        return;
+      }
+
       if (matchedRow) {
         if (isUserBlocked(matchedUser)) {
           setError(
@@ -180,36 +197,13 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         return;
       }
 
-      // Universal Accept Fallback: Allow any non-empty username & password to log in successfully
-      const uLower = inputUser.toLowerCase();
-      let assignedRole: UserRole = 'super_admin';
-      if (uLower.includes('user') || uLower.includes('guest')) {
-        assignedRole = 'user';
-      } else if (uLower.includes('admin')) {
-        assignedRole = 'admin';
-      }
-
-      const userObj: UserSession = { username: inputUser, role: assignedRole };
-      const sessionRecord = registerNewSession(userObj);
-      userObj.sessionId = sessionRecord.id;
-
-      onLoginSuccess(userObj);
-      onClose?.();
+      // STRICT VALIDATION: If credentials do not match Google Sheet data or Master Admin, reject login!
+      setError(t.invalid);
       setLoading(false);
       return;
     } catch (err: any) {
-      console.warn('Error during login verification, falling back to instant login:', err);
-      // Even if fetch errors out, log the user in directly with their entered username
-      if (username.trim()) {
-        const userObj: UserSession = { username: username.trim(), role: 'super_admin' };
-        const sessionRecord = registerNewSession(userObj);
-        userObj.sessionId = sessionRecord.id;
-
-        onLoginSuccess(userObj);
-        onClose?.();
-      } else {
-        setError(t.invalid);
-      }
+      console.warn('Error during login verification:', err);
+      setError(t.invalid);
     } finally {
       setLoading(false);
     }
