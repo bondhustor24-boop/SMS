@@ -131,13 +131,13 @@ export const DataTable: React.FC<DataTableProps> = ({
   // Visible columns calculated based on user role and locks
   const visibleHeaders = useMemo(() => {
     return headers.filter((h) => {
-      // If column is locked by Super Admin and current user is not Super Admin
+      // If column is locked by Super Admin and current user is not Super Admin, hide it completely
       if (userRole !== 'super_admin' && lockedColumns[h]) {
-        return !superAdminHiddenColumns[h];
+        return false;
       }
       return !hiddenColumns[h];
     });
-  }, [headers, hiddenColumns, lockedColumns, superAdminHiddenColumns, userRole]);
+  }, [headers, hiddenColumns, lockedColumns, userRole]);
 
   // Filtered rows
   const filteredRows = useMemo(() => {
@@ -362,7 +362,7 @@ export const DataTable: React.FC<DataTableProps> = ({
                     const isLocked = !!lockedColumns[header];
                     const isVisible = userRole === 'super_admin' 
                       ? !hiddenColumns[header]
-                      : isLocked ? !superAdminHiddenColumns[header] : !hiddenColumns[header];
+                      : isLocked ? false : !hiddenColumns[header];
 
                     return (
                       <div
