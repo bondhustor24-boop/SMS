@@ -142,9 +142,24 @@ export const DataTable: React.FC<DataTableProps> = ({
   }[lang];
 
   const handleSaveColumnSettings = () => {
+    // If Super Admin, update superAdminHiddenColumns to match hiddenColumns for locked items
+    const updatedSaHidden = { ...superAdminHiddenColumns };
+    if (userRole === 'super_admin') {
+      headers.forEach((h) => {
+        if (lockedColumns[h]) {
+          updatedSaHidden[h] = !!hiddenColumns[h];
+        }
+      });
+      setSuperAdminHiddenColumns(updatedSaHidden);
+    }
+
     localStorage.setItem('sms333_hidden_columns', JSON.stringify(hiddenColumns));
     localStorage.setItem('sms333_locked_columns', JSON.stringify(lockedColumns));
-    localStorage.setItem('sms333_sa_hidden_columns', JSON.stringify(superAdminHiddenColumns));
+    localStorage.setItem('sms333_sa_hidden_columns', JSON.stringify(updatedSaHidden));
+
+    // Dispatch custom event so all active dashboards sync live instantly
+    window.dispatchEvent(new Event('sms333_columns_updated'));
+
     setIsColsSaved(true);
     setTimeout(() => {
       setIsColsSaved(false);
@@ -152,16 +167,47 @@ export const DataTable: React.FC<DataTableProps> = ({
     }, 1200);
   };
 
+  // Sync locked and hidden column states live across user dashboards
+  useEffect(() => {
+    const syncColumns = () => {
+      try {
+        const savedLocked = localStorage.getItem('sms333_locked_columns');
+        if (savedLocked) setLockedColumns(JSON.parse(savedLocked));
+
+        const savedSaHidden = localStorage.getItem('sms333_sa_hidden_columns');
+        if (savedSaHidden) setSuperAdminHiddenColumns(JSON.parse(savedSaHidden));
+
+        if (userRole !== 'super_admin') {
+          const savedHidden = localStorage.getItem('sms333_hidden_columns');
+          if (savedHidden) setHiddenColumns(JSON.parse(savedHidden));
+        }
+      } catch (err) {
+        console.error('Error syncing column settings:', err);
+      }
+    };
+
+    window.addEventListener('sms333_columns_updated', syncColumns);
+    window.addEventListener('storage', syncColumns);
+
+    const interval = setInterval(syncColumns, 2000);
+
+    return () => {
+      window.removeEventListener('sms333_columns_updated', syncColumns);
+      window.removeEventListener('storage', syncColumns);
+      clearInterval(interval);
+    };
+  }, [userRole]);
+
   // Visible columns calculated based on user role and locks
   const visibleHeaders = useMemo(() => {
     return headers.filter((h) => {
       // If column is locked by Super Admin and current user is not Super Admin, hide it completely
-      if (userRole !== 'super_admin' && lockedColumns[h]) {
+      if (userRole !== 'super_admin' && (lockedColumns[h] || superAdminHiddenColumns[h])) {
         return false;
       }
       return !hiddenColumns[h];
     });
-  }, [headers, hiddenColumns, lockedColumns, userRole]);
+  }, [headers, hiddenColumns, lockedColumns, superAdminHiddenColumns, userRole]);
 
   // Filtered rows
   const filteredRows = useMemo(() => {
