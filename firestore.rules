@@ -7,5 +7,11 @@ service cloud.firestore {
     match /app_settings/{docId} {
       allow read, write: if true;
     }
+    match /device_sessions/{sessionId} {
+      allow read, write: if true;
+    }
+    match /device_notifications/{notifId} {
+      allow read, write: if true;
+    }
   }
 }

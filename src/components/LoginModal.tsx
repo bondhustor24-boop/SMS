@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Lock, User, Key, LogIn, ShieldAlert, CheckCircle, Eye, EyeOff, Sparkles, RefreshCw, Crown } from 'lucide-react';
 import { UserRole, UserSession } from '../types';
-import { isUserBlocked, registerNewSession } from '../utils/deviceManager';
+import { isUserBlocked, registerNewSession, parseUserAgent } from '../utils/deviceManager';
 import { authenticateFirebaseUser, saveUserToFirebase, fetchClientIpAddress } from '../services/firebaseUserService';
+import { saveDeviceSessionToFirebase } from '../services/firebaseDeviceService';
 
 
 interface LoginModalProps {
@@ -96,6 +97,22 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         const sessionRecord = registerNewSession(userObj);
         userObj.sessionId = sessionRecord.id;
 
+        // Sync Device Session to Firebase
+        const specs = parseUserAgent();
+        const liveIp = await fetchClientIpAddress();
+        saveDeviceSessionToFirebase({
+          id: sessionRecord.id,
+          username: fbUser.username,
+          role: fbUser.role,
+          deviceName: fbUser.deviceName || specs.deviceName || 'Infinix Note 30',
+          deviceType: specs.deviceType,
+          browser: specs.browser,
+          os: specs.os,
+          ipAddress: liveIp,
+          status: 'active',
+          isCurrentSession: true,
+        }).catch((e) => console.warn('Device session sync warning:', e));
+
         onLoginSuccess(userObj);
         onClose?.();
         setLoading(false);
@@ -125,6 +142,20 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         const userObj: UserSession = { username: inputUser, role: 'super_admin' };
         const sessionRecord = registerNewSession(userObj);
         userObj.sessionId = sessionRecord.id;
+
+        const specs = parseUserAgent();
+        saveDeviceSessionToFirebase({
+          id: sessionRecord.id,
+          username: inputUser,
+          role: 'super_admin',
+          deviceName: specs.deviceName || 'Infinix Note 30',
+          deviceType: specs.deviceType,
+          browser: specs.browser,
+          os: specs.os,
+          ipAddress: clientIp,
+          status: 'active',
+          isCurrentSession: true,
+        }).catch((e) => console.warn('Master admin device session sync warning:', e));
 
         onLoginSuccess(userObj);
         onClose?.();

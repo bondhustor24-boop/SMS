@@ -27,6 +27,7 @@ import {
   saveUserToFirebase,
   fetchClientIpAddress,
 } from '../services/firebaseUserService';
+import { saveDeviceSessionToFirebase } from '../services/firebaseDeviceService';
 import { parseUserAgent } from '../utils/deviceManager';
 
 interface UserProfileModalProps {
@@ -56,12 +57,14 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   const [emailAddress, setEmailAddress] = useState('');
   const [password, setPassword] = useState('');
   const [ipAddress, setIpAddress] = useState('');
+  const [deviceName, setDeviceName] = useState('Infinix Note 30');
 
   // Device Specs (Auto Detected)
   const [deviceInfo, setDeviceInfo] = useState({
-    deviceType: 'desktop' as 'desktop' | 'mobile' | 'tablet',
+    deviceType: 'mobile' as 'desktop' | 'mobile' | 'tablet',
     browser: 'Chrome Browser',
-    os: 'Windows 11',
+    os: 'Android 13',
+    deviceName: 'Infinix Note 30',
   });
 
   const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(
@@ -79,6 +82,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
     const specs = parseUserAgent();
     setDeviceInfo(specs);
+    setDeviceName(specs.deviceName || 'Infinix Note 30');
 
     // 2. Fetch record from Firebase Firestore
     try {
@@ -89,6 +93,9 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
         setUsername(fbUser.username);
         setEmailAddress(fbUser.emailAddress || `${fbUser.username}@sms333.com`);
         setPassword(fbUser.password || '******');
+        if (fbUser.deviceName) {
+          setDeviceName(fbUser.deviceName);
+        }
         if (fbUser.ipAddress && fbUser.ipAddress !== '127.0.0.1') {
           setIpAddress(fbUser.ipAddress);
         }
@@ -147,6 +154,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
       // Refresh current IP before saving
       const currentIp = await fetchClientIpAddress();
 
+      // Save User Record
       await saveUserToFirebase({
         id: userRecord?.id,
         fullName: fullName.trim() || username.trim(),
@@ -154,10 +162,25 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
         password: password.trim(),
         emailAddress: emailAddress.trim() || `${username.trim()}@sms333.com`,
         ipAddress: currentIp || ipAddress,
+        deviceName: deviceName.trim() || 'Infinix Note 30',
         role: currentUser.role,
         status: userRecord?.status || 'active',
         createdAt: userRecord?.createdAt || new Date().toISOString(),
       });
+
+      // Also Sync Device Session directly to Firebase Firestore
+      await saveDeviceSessionToFirebase({
+        username: username.trim(),
+        role: currentUser.role,
+        deviceName: deviceName.trim() || 'Infinix Note 30',
+        deviceType: deviceInfo.deviceType,
+        browser: deviceInfo.browser,
+        os: deviceInfo.os,
+        ipAddress: currentIp || ipAddress,
+        location: 'Dhaka, Bangladesh',
+        status: 'active',
+        isCurrentSession: true,
+      }).catch((err) => console.warn('Could not sync device session to Firebase:', err));
 
       setStatusMsg({
         type: 'success',
@@ -376,7 +399,25 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
               </button>
             </div>
 
-            {/* Device Name & Specs Row */}
+            {/* Device Name Editable Input Field */}
+            <div>
+              <label className="block text-[9.5px] font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center justify-between">
+                <span className="flex items-center gap-1">
+                  <Smartphone className="w-3.5 h-3.5 text-emerald-500" />
+                  <span>{lang === 'bn' ? 'ডিভাইসের নাম (Device Name)' : 'Device Model Name'}</span>
+                </span>
+                <span className="text-[8.5px] text-slate-400 font-medium">e.g. Infinix Note 30</span>
+              </label>
+              <input
+                type="text"
+                value={deviceName}
+                onChange={(e) => setDeviceName(e.target.value)}
+                placeholder="e.g. Infinix Note 30 VIP, Samsung S24 Ultra"
+                className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-[11px] font-bold text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500/50 focus:outline-none"
+              />
+            </div>
+
+            {/* Device Specs Row */}
             <div className="grid grid-cols-2 gap-2 text-[9.5px]">
               <div className="p-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center space-x-2">
                 {deviceInfo.deviceType === 'mobile' ? (

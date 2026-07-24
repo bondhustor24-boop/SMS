@@ -68,6 +68,37 @@
           "description": "Last update timestamp."
         }
       }
+    },
+    "device_sessions": {
+      "title": "DeviceSessions",
+      "description": "Active user devices and session details including device name (e.g., Infinix Note 30), browser, OS, IP address, location, and control status.",
+      "type": "object",
+      "properties": {
+        "username": { "type": "string" },
+        "role": { "type": "string" },
+        "deviceName": { "type": "string" },
+        "deviceType": { "type": "string" },
+        "browser": { "type": "string" },
+        "os": { "type": "string" },
+        "ipAddress": { "type": "string" },
+        "location": { "type": "string" },
+        "loginTime": { "type": "string" },
+        "lastActive": { "type": "string" },
+        "lastAction": { "type": "string" },
+        "status": { "type": "string" }
+      }
+    },
+    "device_notifications": {
+      "title": "DeviceNotifications",
+      "description": "Direct message and security warnings sent to devices by Super Admin.",
+      "type": "object",
+      "properties": {
+        "targetUsername": { "type": "string" },
+        "senderUsername": { "type": "string" },
+        "message": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "read": { "type": "boolean" }
+      }
     }
   }
 }

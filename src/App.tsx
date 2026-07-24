@@ -12,6 +12,7 @@ import { DeviceManagementModal } from './components/DeviceManagementModal';
 import { FirebaseUserManagerModal } from './components/FirebaseUserManagerModal';
 import { UserProfileModal } from './components/UserProfileModal';
 import { seedDefaultSuperAdminInFirebase } from './services/firebaseUserService';
+import { getFirebaseUserNotifications } from './services/firebaseDeviceService';
 
 import {
   isUserBlocked,
@@ -103,11 +104,16 @@ export default function App() {
         }
       }
 
-      // 3. Check for Super Admin Notifications
+      // 3. Check for Super Admin Notifications (Local + Firebase)
       const notifs = getUserUnreadNotifications(user.username);
-      if (notifs.length > 0) {
-        setUnreadNotifs(notifs);
-      }
+      getFirebaseUserNotifications(user.username).then((fbNotifs) => {
+        const combined = [...notifs, ...fbNotifs];
+        if (combined.length > 0) {
+          setUnreadNotifs(combined);
+        }
+      }).catch((e) => {
+        if (notifs.length > 0) setUnreadNotifs(notifs);
+      });
     }, 2000);
 
     return () => clearInterval(interval);

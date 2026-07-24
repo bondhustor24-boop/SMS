@@ -22,6 +22,7 @@ import {
   Bell,
   Send,
   MessageSquare,
+  Sparkles,
 } from 'lucide-react';
 import { DeviceSession, UserSession } from '../types';
 import {
@@ -34,6 +35,14 @@ import {
   isUserBlocked,
   sendNotificationToDevice,
 } from '../utils/deviceManager';
+import {
+  getAllFirebaseDeviceSessions,
+  subscribeFirebaseDeviceSessions,
+  terminateDeviceSessionInFirebase,
+  terminateAllOtherFirebaseSessions,
+  toggleBlockUserInFirebase,
+  sendFirebaseDeviceNotification,
+} from '../services/firebaseDeviceService';
 
 interface DeviceManagementModalProps {
   isOpen: boolean;
@@ -61,20 +70,46 @@ export const DeviceManagementModal: React.FC<DeviceManagementModalProps> = ({
   const [notifText, setNotifText] = useState('');
 
   useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
     if (isOpen) {
-      refreshData();
+      // 1. Initial load from Firebase
+      getAllFirebaseDeviceSessions().then((fbSessions) => {
+        if (fbSessions.length > 0) {
+          setSessions(fbSessions);
+        } else {
+          setSessions(getStoredSessions());
+        }
+      });
+
+      // 2. Real-time Firebase Firestore Subscription
+      unsubscribe = subscribeFirebaseDeviceSessions((liveSessions) => {
+        if (liveSessions && liveSessions.length > 0) {
+          setSessions(liveSessions);
+        }
+      });
+
+      setBlockedList(getBlockedUsers());
     }
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, [isOpen]);
 
-  const refreshData = () => {
-    setSessions(getStoredSessions());
-    setBlockedList(getBlockedUsers());
+  const refreshData = async () => {
+    try {
+      const fbSessions = await getAllFirebaseDeviceSessions();
+      setSessions(fbSessions);
+      setBlockedList(getBlockedUsers());
+    } catch (e) {
+      setSessions(getStoredSessions());
+    }
   };
 
-  const handleManualRefresh = () => {
+  const handleManualRefresh = async () => {
     setIsRefreshing(true);
-    refreshData();
-    setActionMessage(lang === 'bn' ? 'ডিভাইস তথ্য রিফ্রেশ করা হয়েছে!' : 'Device session list refreshed!');
+    await refreshData();
+    setActionMessage(lang === 'bn' ? 'ফায়ারবেস ডিভাইস তথ্য রিফ্রেশ করা হয়েছে!' : 'Firebase device session list refreshed!');
     setTimeout(() => {
       setIsRefreshing(false);
       setActionMessage(null);
@@ -156,31 +191,53 @@ export const DeviceManagementModal: React.FC<DeviceManagementModalProps> = ({
     },
   }[lang];
 
-  const handleRemoteLogout = (sessionId: string, username: string) => {
-    const updated = terminateSession(sessionId);
-    setSessions(updated);
-    setActionMessage(`${username} - Session terminated successfully.`);
+  const handleRemoteLogout = async (sessionId: string, username: string) => {
+    try {
+      await terminateDeviceSessionInFirebase(sessionId);
+      terminateSession(sessionId); // local sync fallback
+      setActionMessage(`${username} - Device session terminated in Firebase.`);
+    } catch (e) {
+      const updated = terminateSession(sessionId);
+      setSessions(updated);
+      setActionMessage(`${username} - Local session terminated.`);
+    }
     setTimeout(() => setActionMessage(null), 3000);
   };
 
-  const handleToggleBlock = (username: string) => {
-    const result = toggleBlockUser(username);
-    setSessions(result.updatedSessions);
-    setBlockedList(getBlockedUsers());
-    setActionMessage(
-      result.isBlocked
-        ? `User '${username}' has been BLOCKED and access suspended.`
-        : `User '${username}' has been UNLOCKED.`
-    );
+  const handleToggleBlock = async (username: string) => {
+    try {
+      const result = await toggleBlockUserInFirebase(username);
+      toggleBlockUser(username); // local sync fallback
+      setActionMessage(
+        result.isBlocked
+          ? `User '${username}' blocked & suspended in Firebase!`
+          : `User '${username}' unblocked in Firebase!`
+      );
+    } catch (e) {
+      const result = toggleBlockUser(username);
+      setSessions(result.updatedSessions);
+      setBlockedList(getBlockedUsers());
+      setActionMessage(
+        result.isBlocked
+          ? `User '${username}' BLOCKED locally.`
+          : `User '${username}' UNLOCKED locally.`
+      );
+    }
     setTimeout(() => setActionMessage(null), 3000);
   };
 
-  const handleTerminateAllOthers = () => {
+  const handleTerminateAllOthers = async () => {
     if (window.confirm(t.confirmTerminateAll)) {
       const currentSessionId = currentUser?.sessionId;
-      const updated = terminateAllOtherSessions(currentSessionId);
-      setSessions(updated);
-      setActionMessage("All other active devices have been logged out!");
+      try {
+        await terminateAllOtherFirebaseSessions(currentSessionId);
+        terminateAllOtherSessions(currentSessionId);
+        setActionMessage("All other active devices terminated in Firebase!");
+      } catch (e) {
+        const updated = terminateAllOtherSessions(currentSessionId);
+        setSessions(updated);
+        setActionMessage("All other active devices logged out locally!");
+      }
       setTimeout(() => setActionMessage(null), 3000);
     }
   };
@@ -191,19 +248,35 @@ export const DeviceManagementModal: React.FC<DeviceManagementModalProps> = ({
     setNotifModalOpen(true);
   };
 
-  const handleSendNotification = (e: React.FormEvent) => {
+  const handleSendNotification = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!targetSession || !notifText.trim()) return;
 
-    sendNotificationToDevice(
-      targetSession.username,
-      notifText.trim(),
-      currentUser?.username || 'Super Admin',
-      targetSession.id
-    );
+    try {
+      await sendFirebaseDeviceNotification(
+        targetSession.username,
+        notifText.trim(),
+        currentUser?.username || 'Super Admin',
+        targetSession.id
+      );
+      sendNotificationToDevice(
+        targetSession.username,
+        notifText.trim(),
+        currentUser?.username || 'Super Admin',
+        targetSession.id
+      );
+      setActionMessage(`Alert notification sent to ${targetSession.username} via Firebase!`);
+    } catch (err) {
+      sendNotificationToDevice(
+        targetSession.username,
+        notifText.trim(),
+        currentUser?.username || 'Super Admin',
+        targetSession.id
+      );
+      setActionMessage(`Alert notification sent to ${targetSession.username}!`);
+    }
 
     setNotifModalOpen(false);
-    setActionMessage(`Notification sent to ${targetSession.username}!`);
     setTimeout(() => setActionMessage(null), 3000);
   };
 
@@ -419,19 +492,30 @@ export const DeviceManagementModal: React.FC<DeviceManagementModalProps> = ({
                           </div>
                         </td>
 
-                        {/* Device & OS */}
+                        {/* Device Name & Specs */}
                         <td className="p-2 sm:p-2.5">
-                          <div className="flex items-center space-x-1.5">
-                            {session.deviceType === 'mobile' ? (
-                              <Smartphone className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                            ) : session.deviceType === 'tablet' ? (
-                              <Tablet className="w-3.5 h-3.5 text-purple-500 shrink-0" />
-                            ) : (
-                              <Monitor className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                            )}
-                            <div>
-                              <p className="font-semibold text-slate-800 dark:text-slate-200">{session.os}</p>
-                              <p className="text-[9px] text-slate-500 dark:text-slate-400">{session.browser}</p>
+                          <div className="flex items-start space-x-2">
+                            <div className="p-1 bg-slate-100 dark:bg-slate-800 rounded-lg mt-0.5">
+                              {session.deviceType === 'mobile' ? (
+                                <Smartphone className="w-4 h-4 text-emerald-500 shrink-0" />
+                              ) : session.deviceType === 'tablet' ? (
+                                <Tablet className="w-4 h-4 text-purple-500 shrink-0" />
+                              ) : (
+                                <Monitor className="w-4 h-4 text-sky-500 shrink-0" />
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1 font-bold text-slate-900 dark:text-slate-100 text-[11px]">
+                                <span className="truncate">{session.deviceName || 'Infinix Note 30'}</span>
+                                {session.deviceName?.toLowerCase().includes('infinix') && (
+                                  <span className="px-1 py-0.2 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30 rounded text-[7.5px] font-black uppercase">
+                                    XOS
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[9.5px] font-medium text-slate-500 dark:text-slate-400">
+                                {session.os} • {session.browser}
+                              </p>
                             </div>
                           </div>
                         </td>

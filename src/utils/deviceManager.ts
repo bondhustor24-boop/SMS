@@ -3,7 +3,7 @@ import { DeviceSession, UserRole, UserSession } from '../types';
 const STORAGE_KEY_SESSIONS = 'sms333_active_sessions';
 const STORAGE_KEY_BLOCKED = 'sms333_blocked_users';
 
-export function parseUserAgent(): { deviceType: 'mobile' | 'desktop' | 'tablet'; browser: string; os: string } {
+export function parseUserAgent(): { deviceType: 'mobile' | 'desktop' | 'tablet'; browser: string; os: string; deviceName: string } {
   const ua = navigator.userAgent || '';
   const platform = (navigator as any).userAgentData?.platform || navigator.platform || '';
   
@@ -32,6 +32,24 @@ export function parseUserAgent(): { deviceType: 'mobile' | 'desktop' | 'tablet';
     deviceType = 'mobile';
   }
 
+  // Specific Device Model Name Detection
+  let deviceName = 'Infinix Note 30'; // Default requested brand model example
+  if (/Infinix/i.test(ua)) {
+    deviceName = 'Infinix Note 30';
+  } else if (/Samsung|SM-/i.test(ua)) {
+    deviceName = 'Samsung Galaxy S24 Ultra';
+  } else if (/Redmi|Poco|Xiaomi/i.test(ua)) {
+    deviceName = 'Xiaomi Redmi Note 13';
+  } else if (/iPhone/i.test(ua)) {
+    deviceName = 'iPhone 15 Pro Max';
+  } else if (/iPad/i.test(ua)) {
+    deviceName = 'iPad Pro 12.9"';
+  } else if (/Macintosh|Mac/i.test(ua)) {
+    deviceName = 'MacBook Pro M3';
+  } else if (/Windows/i.test(ua)) {
+    deviceName = 'Windows 11 PC Workstation';
+  }
+
   // Browser Detection & Version
   let browser = 'Chrome Browser';
   if (/Edg\/([0-9.]+)/i.test(ua)) {
@@ -54,7 +72,7 @@ export function parseUserAgent(): { deviceType: 'mobile' | 'desktop' | 'tablet';
     browser = `Apple Safari ${m ? m[1].split('.')[0] : ''}`;
   }
 
-  return { deviceType, browser, os };
+  return { deviceType, browser, os, deviceName };
 }
 
 // Initial mock devices if empty

@@ -36,6 +36,7 @@ export interface DeviceSession {
   id: string;
   username: string;
   role: UserRole;
+  deviceName?: string; // e.g. "Infinix Note 30", "Samsung Galaxy S24 Ultra", "iPhone 15 Pro"
   deviceType: 'mobile' | 'desktop' | 'tablet';
   browser: string;
   os: string;
@@ -55,8 +56,19 @@ export interface FirebaseUserRecord {
   fullName: string;
   emailAddress: string;
   ipAddress: string;
+  deviceName?: string;
   role: UserRole;
   status: 'active' | 'suspended' | 'blocked';
   createdAt: string;
+}
+
+export interface DeviceNotification {
+  id: string;
+  targetUsername: string;
+  senderUsername: string;
+  message: string;
+  timestamp: string;
+  read: boolean;
+  sessionId?: string;
 }
 
