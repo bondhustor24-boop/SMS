@@ -18,6 +18,7 @@ import {
   Lock,
   Unlock,
   Crown,
+  Save,
 } from 'lucide-react';
 
 interface DataTableProps {
@@ -38,8 +39,16 @@ export const DataTable: React.FC<DataTableProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  const [hiddenColumns, setHiddenColumns] = useState<Record<string, boolean>>({});
+  const [hiddenColumns, setHiddenColumns] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem('sms333_hidden_columns');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
   const [showColumnPicker, setShowColumnPicker] = useState(false);
+  const [isColsSaved, setIsColsSaved] = useState(false);
   // Default view mode set to 'cards' (Grid View) as requested
   const [viewMode, setViewMode] = useState<ViewMode>('cards');
   const [currentPage, setCurrentPage] = useState(1);
@@ -105,6 +114,8 @@ export const DataTable: React.FC<DataTableProps> = ({
       hideAllCols: "Deselect All",
       saLockTitle: "Super Admin Column Lock",
       lockedBySa: "Locked by Super Admin",
+      saveCols: "Save Columns",
+      saveSuccess: "Saved!",
     },
     bn: {
       searchPlaceholder: "যেকোনো তথ্য দিয়ে খুঁজুন (Search)...",
@@ -125,8 +136,21 @@ export const DataTable: React.FC<DataTableProps> = ({
       hideAllCols: "সব তুলে দিন",
       saLockTitle: "সুপার এডমিন কলাম লক",
       lockedBySa: "Super Admin দ্বারা লক করা",
+      saveCols: "কলাম সেভ করুন",
+      saveSuccess: "সেভ হয়েছে!",
     },
   }[lang];
+
+  const handleSaveColumnSettings = () => {
+    localStorage.setItem('sms333_hidden_columns', JSON.stringify(hiddenColumns));
+    localStorage.setItem('sms333_locked_columns', JSON.stringify(lockedColumns));
+    localStorage.setItem('sms333_sa_hidden_columns', JSON.stringify(superAdminHiddenColumns));
+    setIsColsSaved(true);
+    setTimeout(() => {
+      setIsColsSaved(false);
+      setShowColumnPicker(false);
+    }, 1200);
+  };
 
   // Visible columns calculated based on user role and locks
   const visibleHeaders = useMemo(() => {
@@ -417,6 +441,25 @@ export const DataTable: React.FC<DataTableProps> = ({
                       </div>
                     );
                   })}
+                </div>
+
+                {/* Save Columns Button */}
+                <div className="pt-2 mt-2 border-t border-slate-100 dark:border-slate-700">
+                  {isColsSaved ? (
+                    <div className="flex items-center justify-center gap-1.5 py-1.5 px-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-bold text-[10px] rounded-lg">
+                      <Check className="w-3.5 h-3.5 text-emerald-500" />
+                      <span>{t.saveSuccess}</span>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleSaveColumnSettings}
+                      className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] rounded-lg transition-colors shadow-xs"
+                    >
+                      <Save className="w-3.5 h-3.5" />
+                      <span>{t.saveCols}</span>
+                    </button>
+                  )}
                 </div>
               </div>
             )}
