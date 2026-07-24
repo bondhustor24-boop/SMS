@@ -321,6 +321,7 @@ export default function App() {
               headers={data?.headers || []}
               loading={loading}
               lang={lang}
+              userRole={user.role}
             />
 
             {/* Interactive Data Table & Controls */}

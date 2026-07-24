@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { SheetRow } from '../types';
+import React, { useState, useEffect } from 'react';
+import { SheetRow, UserRole } from '../types';
 import {
   MessageSquare,
   Clock,
@@ -13,6 +13,9 @@ import {
   ListFilter,
   Send,
   Smartphone,
+  Save,
+  Crown,
+  Lock,
 } from 'lucide-react';
 import { LoadingSpinner } from './LoadingSpinner';
 
@@ -21,6 +24,7 @@ interface RecentSmsWidgetProps {
   headers: string[];
   loading: boolean;
   lang: 'bn' | 'en';
+  userRole?: UserRole;
 }
 
 type TemplateStyle = 'cards' | 'chat' | 'compact';
@@ -30,9 +34,51 @@ export const RecentSmsWidget: React.FC<RecentSmsWidgetProps> = ({
   headers,
   loading,
   lang,
+  userRole,
 }) => {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
-  const [templateStyle, setTemplateStyle] = useState<TemplateStyle>('cards');
+  const [templateStyle, setTemplateStyle] = useState<TemplateStyle>(() => {
+    try {
+      const saved = localStorage.getItem('sms333_sms_template');
+      return (saved as TemplateStyle) || 'cards';
+    } catch {
+      return 'cards';
+    }
+  });
+  const [isSaved, setIsSaved] = useState(false);
+
+  // Sync template setting live across all active user dashboards
+  useEffect(() => {
+    const syncTemplate = () => {
+      try {
+        const saved = localStorage.getItem('sms333_sms_template');
+        if (saved && (saved === 'cards' || saved === 'chat' || saved === 'compact')) {
+          setTemplateStyle(saved as TemplateStyle);
+        }
+      } catch (err) {
+        console.error('Error syncing SMS template:', err);
+      }
+    };
+
+    syncTemplate();
+    window.addEventListener('sms333_template_updated', syncTemplate);
+    window.addEventListener('storage', syncTemplate);
+    const interval = setInterval(syncTemplate, 1000);
+
+    return () => {
+      window.removeEventListener('sms333_template_updated', syncTemplate);
+      window.removeEventListener('storage', syncTemplate);
+      clearInterval(interval);
+    };
+  }, []);
+
+  const handleSelectAndSaveTemplate = (selected: TemplateStyle) => {
+    setTemplateStyle(selected);
+    localStorage.setItem('sms333_sms_template', selected);
+    window.dispatchEvent(new Event('sms333_template_updated'));
+    setIsSaved(true);
+    setTimeout(() => setIsSaved(false), 1200);
+  };
 
   // Take the last 3 rows (or top 3 if non-empty)
   const last3Rows = React.useMemo(() => {
@@ -135,42 +181,71 @@ export const RecentSmsWidget: React.FC<RecentSmsWidgetProps> = ({
         </div>
 
         {/* Template Style Selector */}
-        <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
-          <button
-            onClick={() => setTemplateStyle('cards')}
-            className={`flex items-center space-x-1 px-2 py-1 rounded-md text-[9px] font-semibold transition-all ${
-              templateStyle === 'cards'
-                ? 'bg-emerald-600 text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-            }`}
-          >
-            <LayoutGrid className="w-3 h-3" />
-            <span>{t.templateCards}</span>
-          </button>
+        <div className="flex items-center gap-1.5">
+          {userRole === 'super_admin' ? (
+            <div className="flex items-center space-x-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
+              <span className="text-[8px] font-bold text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded flex items-center gap-0.5 border border-amber-500/20 mr-0.5">
+                <Crown className="w-2.5 h-2.5" /> Admin Control
+              </span>
 
-          <button
-            onClick={() => setTemplateStyle('chat')}
-            className={`flex items-center space-x-1 px-2 py-1 rounded-md text-[9px] font-semibold transition-all ${
-              templateStyle === 'chat'
-                ? 'bg-emerald-600 text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-            }`}
-          >
-            <Smartphone className="w-3 h-3" />
-            <span>{t.templateChat}</span>
-          </button>
+              <button
+                onClick={() => handleSelectAndSaveTemplate('cards')}
+                className={`flex items-center space-x-1 px-2 py-1 rounded-md text-[9px] font-semibold transition-all ${
+                  templateStyle === 'cards'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                }`}
+              >
+                <LayoutGrid className="w-3 h-3" />
+                <span>{t.templateCards}</span>
+              </button>
 
-          <button
-            onClick={() => setTemplateStyle('compact')}
-            className={`flex items-center space-x-1 px-2 py-1 rounded-md text-[9px] font-semibold transition-all ${
-              templateStyle === 'compact'
-                ? 'bg-emerald-600 text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-            }`}
-          >
-            <ListFilter className="w-3 h-3" />
-            <span>{t.templateCompact}</span>
-          </button>
+              <button
+                onClick={() => handleSelectAndSaveTemplate('chat')}
+                className={`flex items-center space-x-1 px-2 py-1 rounded-md text-[9px] font-semibold transition-all ${
+                  templateStyle === 'chat'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                }`}
+              >
+                <Smartphone className="w-3 h-3" />
+                <span>{t.templateChat}</span>
+              </button>
+
+              <button
+                onClick={() => handleSelectAndSaveTemplate('compact')}
+                className={`flex items-center space-x-1 px-2 py-1 rounded-md text-[9px] font-semibold transition-all ${
+                  templateStyle === 'compact'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                }`}
+              >
+                <ListFilter className="w-3 h-3" />
+                <span>{t.templateCompact}</span>
+              </button>
+
+              {isSaved && (
+                <span className="flex items-center gap-1 text-[9px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30 animate-pulse">
+                  <Check className="w-3 h-3 text-emerald-500" />
+                  {lang === 'bn' ? 'সেভ হয়েছে!' : 'Saved for all!'}
+                </span>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center space-x-1.5 bg-slate-100 dark:bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-[9px] font-semibold text-slate-700 dark:text-slate-300">
+              <Lock className="w-3 h-3 text-amber-500" />
+              <span>
+                {lang === 'bn' ? 'এডমিন নির্বাচিত টেমপ্লেট:' : 'Admin Template:'}
+              </span>
+              <span className="font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.2 rounded border border-emerald-500/20">
+                {templateStyle === 'cards'
+                  ? t.templateCards
+                  : templateStyle === 'chat'
+                  ? t.templateChat
+                  : t.templateCompact}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
