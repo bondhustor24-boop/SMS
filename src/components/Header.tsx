@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { RefreshCw, ShieldCheck, Globe, Database, User, UserCheck, LogIn, LogOut, Crown, Lock, Sun, Moon, Monitor, Target, Bell, BellRing, X } from 'lucide-react';
+import { RefreshCw, ShieldCheck, Globe, Database, UserCheck, LogIn, LogOut, Crown, Lock, Sun, Moon, Monitor, Target, Bell, BellRing, X, Menu } from 'lucide-react';
 import { UserSession, DeviceNotification } from '../types';
 
 interface HeaderProps {
@@ -51,6 +51,7 @@ export const Header: React.FC<HeaderProps> = ({
   setTheme,
 }) => {
   const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const t = {
     en: {
@@ -78,46 +79,47 @@ export const Header: React.FC<HeaderProps> = ({
   }[lang];
 
   return (
-    <header className="bg-slate-900/95 backdrop-blur-md border-b border-slate-800 text-white sticky top-0 z-30 shadow-lg">
-      <div className="max-w-7xl mx-auto px-3 sm:px-5 py-2.5">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2.5">
-          {/* Brand & Status with Goal Icon */}
-          <div className="flex items-center space-x-2.5">
-            <div className="p-2 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 shadow-xs shrink-0 flex items-center justify-center">
-              <Database className="w-4 h-4 sm:w-5 sm:h-5" />
+    <header className="bg-slate-900/95 backdrop-blur-md border-b border-slate-800 text-white sticky top-0 z-30 shadow-md">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2">
+        <div className="flex items-center justify-between gap-2">
+          {/* Brand & Status with Uniform Mini Icons */}
+          <div className="flex items-center space-x-2 min-w-0">
+            <div className="p-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-emerald-400 shrink-0 flex items-center justify-center">
+              <Database className="w-3.5 h-3.5" />
             </div>
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-sm sm:text-base font-extrabold tracking-tight text-slate-100">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <h1 className="text-xs sm:text-sm font-bold tracking-tight text-slate-100 truncate max-w-[180px] sm:max-w-none">
                   {sheetTitle || t.title}
                 </h1>
-                
-                {/* Goal / Target Status Badge */}
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30 shadow-2xs">
+
+                {/* Goal Mini Badge */}
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[9.5px] font-semibold bg-amber-500/10 text-amber-300 border border-amber-500/30">
                   <Target className="w-3 h-3 text-amber-400 mr-1 animate-pulse" />
                   <span>Goal: Live Sync</span>
                 </span>
 
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  <span className={`w-1.5 h-1.5 rounded-full ${isSyncing ? 'bg-amber-400 animate-ping' : 'bg-emerald-400 animate-pulse'} mr-1.5`}></span>
+                {/* Live Status Badge */}
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[9.5px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  <span className={`w-1.5 h-1.5 rounded-full ${isSyncing ? 'bg-amber-400 animate-ping' : 'bg-emerald-400 animate-pulse'} mr-1`}></span>
                   {isSyncing ? (lang === 'bn' ? 'সিঙ্ক...' : 'Syncing...') : 'Live'}
                 </span>
               </div>
-              <p className="text-[10.5px] text-slate-400 font-medium">{t.subtitle}</p>
+              <p className="text-[10px] text-slate-400 font-medium truncate hidden sm:block">{t.subtitle}</p>
             </div>
           </div>
 
-          {/* Action Bar */}
-          <div className="flex flex-wrap items-center gap-2 text-[10.5px]">
+          {/* Desktop Action Bar */}
+          <div className="hidden lg:flex items-center gap-1.5 text-[10.5px]">
             {/* Notification Bell Dropdown Button */}
             <div className="relative">
               <button
                 onClick={() => setIsNotifOpen(!isNotifOpen)}
-                className="relative flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700/80 text-[10.5px] transition-all shadow-2xs"
+                className="h-7 inline-flex items-center space-x-1.5 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700/80 transition-all text-[10.5px] font-semibold"
                 title={lang === 'bn' ? 'নোটিফিকেশন সেন্টার' : 'Notifications'}
               >
                 <BellRing className={`w-3.5 h-3.5 ${unreadNotifs.length > 0 ? 'text-amber-400 animate-bounce' : 'text-slate-400'}`} />
-                <span className="font-bold text-slate-200 hidden sm:inline">
+                <span>
                   {lang === 'bn' ? 'নোটিফিকেশন' : 'Alerts'}
                 </span>
                 {unreadNotifs.length > 0 && (
@@ -127,43 +129,41 @@ export const Header: React.FC<HeaderProps> = ({
                 )}
               </button>
 
-              {/* Notification Close & Dismiss Popup */}
+              {/* Notification Popup */}
               {isNotifOpen && (
-                <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-slate-900 border border-slate-700 shadow-2xl rounded-2xl p-3 z-50 animate-in fade-in slide-in-from-top-2">
+                <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-slate-900 border border-slate-700 shadow-2xl rounded-xl p-3 z-50 animate-in fade-in slide-in-from-top-2">
                   <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800">
-                    <div className="flex items-center space-x-2">
-                      <Bell className="w-4 h-4 text-amber-400" />
+                    <div className="flex items-center space-x-1.5">
+                      <Bell className="w-3.5 h-3.5 text-amber-400" />
                       <h4 className="font-bold text-slate-100 text-xs">
                         {lang === 'bn' ? 'নোটিফিকেশন প্যানেল' : 'Notifications'} ({unreadNotifs.length})
                       </h4>
                     </div>
-                    {/* Panel Close Button */}
                     <button
                       onClick={() => setIsNotifOpen(false)}
-                      className="p-1 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors"
+                      className="p-1 hover:bg-slate-800 rounded-md text-slate-400 hover:text-white transition-colors"
                       title={lang === 'bn' ? 'বন্ধ করুন' : 'Close Panel'}
                     >
-                      <X className="w-4 h-4" />
+                      <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
 
                   {unreadNotifs.length === 0 ? (
-                    <div className="py-6 text-center text-slate-500 text-[11px] font-medium">
+                    <div className="py-5 text-center text-slate-500 text-[10.5px] font-medium">
                       {lang === 'bn' ? 'কোন নতুন নোটিফিকেশন নেই' : 'No new notifications'}
                     </div>
                   ) : (
-                    <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                    <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
                       {unreadNotifs.map((notif) => (
-                        <div key={notif.id} className="p-2.5 bg-slate-800/80 border border-slate-700/80 rounded-xl text-[10.5px] relative group">
-                          <div className="flex items-center justify-between text-slate-400 text-[9.5px] font-bold mb-1">
+                        <div key={notif.id} className="p-2 bg-slate-800/80 border border-slate-700/80 rounded-lg text-[10px] relative group">
+                          <div className="flex items-center justify-between text-slate-400 text-[9px] font-bold mb-1">
                             <span className="text-emerald-400">{notif.senderUsername}</span>
                             <span>{new Date(notif.timestamp).toLocaleTimeString()}</span>
                           </div>
                           <p className="text-slate-200 font-medium whitespace-pre-wrap pr-5">{notif.message}</p>
-                          {/* Item Close Button */}
                           <button
                             onClick={() => onDismissNotif?.(notif.id)}
-                            className="absolute top-2 right-2 p-1 text-slate-400 hover:text-red-400 transition-colors"
+                            className="absolute top-2 right-2 p-0.5 text-slate-400 hover:text-red-400 transition-colors"
                             title={lang === 'bn' ? 'মুছে ফেলুন' : 'Dismiss'}
                           >
                             <X className="w-3.5 h-3.5" />
@@ -176,17 +176,17 @@ export const Header: React.FC<HeaderProps> = ({
                   {unreadNotifs.length > 0 && (
                     <div className="mt-2 pt-2 border-t border-slate-800 flex justify-between items-center">
                       <span className="text-[9.5px] text-slate-400 font-medium">
-                        {lang === 'bn' ? 'লাইব নোটিফিকেশন সিস্টেম' : 'Live Notification System'}
+                        {lang === 'bn' ? 'লাইভ সিস্টেম' : 'Live System'}
                       </span>
                       <button
                         onClick={() => {
                           onClearAllNotifs?.();
                           setIsNotifOpen(false);
                         }}
-                        className="text-[10px] font-bold text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-1 rounded-lg border border-amber-500/30 transition-colors flex items-center gap-1"
+                        className="text-[10px] font-bold text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 px-2 py-0.5 rounded border border-amber-500/30 transition-colors flex items-center gap-1"
                       >
-                        <X className="w-3 h-3" />
-                        <span>{lang === 'bn' ? 'সব বন্ধ / সাফ করুন' : 'Clear & Close All'}</span>
+                        <X className="w-3.5 h-3.5" />
+                        <span>{lang === 'bn' ? 'সব মুছে বন্ধ করুন' : 'Clear All & Close'}</span>
                       </button>
                     </div>
                   )}
@@ -196,16 +196,16 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* Auto Refresh Select */}
             <div
-              className={`flex items-center bg-slate-800/90 border ${
+              className={`h-7 inline-flex items-center bg-slate-800/90 border ${
                 user?.role === 'super_admin' ? 'border-amber-500/50' : 'border-slate-700/80'
-              } rounded-xl px-2.5 py-1 text-[10.5px] text-slate-300 relative group shadow-2xs`}
+              } rounded-lg px-2 text-[10.5px] text-slate-300 relative group`}
               title={
                 user?.role === 'super_admin'
                   ? 'Auto Sync Settings (Super Admin unlocked)'
                   : 'Auto Sync interval is locked. Only Super Admin can change sync settings.'
               }
             >
-              <span className="mr-1.5 text-slate-400 flex items-center gap-1 font-semibold">
+              <span className="mr-1 text-slate-400 inline-flex items-center gap-1 font-semibold">
                 {user?.role === 'super_admin' ? (
                   <Crown className="w-3.5 h-3.5 text-amber-400" />
                 ) : (
@@ -236,7 +236,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={onRefresh}
               disabled={loading || isSyncing}
-              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10.5px] transition-all shadow-sm hover:shadow-md disabled:opacity-50"
+              className="h-7 inline-flex items-center space-x-1.5 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10.5px] transition-all disabled:opacity-50"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading || isSyncing ? 'animate-spin' : ''}`} />
               <span>{lang === 'bn' ? 'রিফ্রেশ' : 'Refresh'}</span>
@@ -245,18 +245,18 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Theme Switcher */}
             <button
               onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-              className="flex items-center space-x-1 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700/80 text-[10.5px] transition-all shadow-2xs"
+              className="h-7 inline-flex items-center space-x-1 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700/80 text-[10.5px] font-semibold transition-all"
               title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
             >
               {theme === 'light' ? (
                 <>
                   <Moon className="w-3.5 h-3.5 text-amber-300" />
-                  <span className="font-bold text-slate-200">{lang === 'bn' ? 'ডার্ক' : 'Dark'}</span>
+                  <span className="text-slate-200">{lang === 'bn' ? 'ডার্ক' : 'Dark'}</span>
                 </>
               ) : (
                 <>
                   <Sun className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-                  <span className="font-bold text-amber-300">{lang === 'bn' ? 'লাইট' : 'Light'}</span>
+                  <span className="text-amber-300">{lang === 'bn' ? 'লাইট' : 'Light'}</span>
                 </>
               )}
             </button>
@@ -264,107 +264,270 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Language Switcher */}
             <button
               onClick={() => setLang(lang === 'en' ? 'bn' : 'en')}
-              className="flex items-center space-x-1 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700/80 text-[10.5px] transition-all shadow-2xs"
+              className="h-7 inline-flex items-center space-x-1 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700/80 text-[10.5px] font-semibold transition-all"
               title="Toggle language"
             >
               <Globe className="w-3.5 h-3.5 text-blue-400" />
-              <span className="font-bold text-blue-300">{lang === 'en' ? 'BN' : 'EN'}</span>
+              <span className="text-blue-300">{lang === 'en' ? 'BN' : 'EN'}</span>
             </button>
 
-            {/* Login / User Status */}
+            {/* Super Admin Control Buttons */}
+            {user?.role === 'super_admin' && onFirebaseUsersClick && (
+              <button
+                onClick={onFirebaseUsersClick}
+                className="h-7 inline-flex items-center space-x-1 px-2 rounded-lg bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 border border-orange-500/40 text-[10.5px] font-bold transition-all"
+                title="Firebase User Database Control"
+              >
+                <Crown className="w-3.5 h-3.5 text-orange-400" />
+                <span>{lang === 'bn' ? 'ইউজারস' : 'Users'}</span>
+              </button>
+            )}
+
+            {user?.role === 'super_admin' && onDevicesClick && (
+              <button
+                onClick={onDevicesClick}
+                className="h-7 inline-flex items-center space-x-1 px-2 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[10.5px] font-bold transition-all"
+                title="Super Admin Live Device & Session Control"
+              >
+                <Monitor className="w-3.5 h-3.5 text-amber-400" />
+                <span>{lang === 'bn' ? 'ডিভাইস' : 'Devices'}</span>
+              </button>
+            )}
+
+            {/* Single Clean Integrated User Profile Badge + Logout */}
             {user ? (
-              <div className="flex items-center space-x-2">
-                {user.role === 'super_admin' && onFirebaseUsersClick && (
-                  <button
-                    onClick={onFirebaseUsersClick}
-                    className="flex items-center space-x-1 px-2.5 py-1 rounded-xl bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 border border-orange-500/40 text-[10.5px] font-bold transition-all shadow-xs"
-                    title="Firebase User Database Control"
-                  >
-                    <Crown className="w-3.5 h-3.5 text-orange-400" />
-                    <span>{lang === 'bn' ? 'ফায়ারবেস ইউজার' : 'Firebase Users'}</span>
-                  </button>
-                )}
-
-                {user.role === 'super_admin' && onDevicesClick && (
-                  <button
-                    onClick={onDevicesClick}
-                    className="flex items-center space-x-1 px-2.5 py-1 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[10.5px] font-bold transition-all shadow-xs"
-                    title="Super Admin Live Device & Session Control"
-                  >
-                    <Monitor className="w-3.5 h-3.5 text-amber-400" />
-                    <span>{lang === 'bn' ? 'ডিভাইস কন্ট্রোল' : 'Device Control'}</span>
-                  </button>
-                )}
-
-                {/* Profile Button with UserCheck Profile Icon */}
-                {onProfileClick && (
-                  <button
-                    onClick={onProfileClick}
-                    className="flex items-center space-x-1.5 px-2.5 py-1 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[10.5px] font-bold transition-all shadow-xs"
-                    title="Edit Profile, Auto IP & Device Info"
-                  >
-                    <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>{lang === 'bn' ? 'প্রোফাইল' : 'Profile'}</span>
-                  </button>
-                )}
-
-                <div
-                  className={`flex items-center space-x-1.5 border rounded-xl px-2.5 py-1 text-[10.5px] ${
-                    user.role === 'super_admin'
-                      ? 'bg-amber-950/80 border-amber-500/50 text-amber-200'
-                      : user.role === 'admin'
-                      ? 'bg-emerald-950/80 border-emerald-500/40 text-emerald-200'
-                      : 'bg-blue-950/80 border-blue-500/40 text-blue-200'
-                  }`}
+              <div
+                className={`h-7 inline-flex items-center space-x-1.5 border rounded-lg px-2 text-[10.5px] ${
+                  user.role === 'super_admin'
+                    ? 'bg-amber-950/80 border-amber-500/50 text-amber-200'
+                    : user.role === 'admin'
+                    ? 'bg-emerald-950/80 border-emerald-500/40 text-emerald-200'
+                    : 'bg-blue-950/80 border-blue-500/40 text-blue-200'
+                }`}
+              >
+                <button
+                  onClick={onProfileClick}
+                  className="inline-flex items-center space-x-1 font-bold hover:underline"
+                  title="Click to view/edit profile"
                 >
-                  <button
-                    onClick={onProfileClick}
-                    className="flex items-center space-x-1 font-bold hover:underline"
-                    title="Click to edit profile"
+                  {user.role === 'super_admin' ? (
+                    <Crown className="w-3.5 h-3.5 text-amber-400" />
+                  ) : (
+                    <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  )}
+                  <span className="capitalize">{user.username}</span>
+                  <span
+                    className={`text-[8.5px] px-1 py-0.2 rounded uppercase font-black tracking-wider ${
+                      user.role === 'super_admin'
+                        ? 'bg-amber-500/30 text-amber-300 border border-amber-500/40'
+                        : user.role === 'admin'
+                        ? 'bg-emerald-500/30 text-emerald-200 border border-emerald-500/40'
+                        : 'bg-blue-500/30 text-blue-200 border border-blue-500/40'
+                    }`}
                   >
-                    {user.role === 'super_admin' ? (
-                      <Crown className="w-3.5 h-3.5 text-amber-400" />
-                    ) : (
-                      <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
-                    )}
-                    <span className="capitalize text-[10.5px]">{user.username}</span>
-                    <span
-                      className={`text-[8.5px] px-1.5 py-0.2 rounded-md uppercase font-black tracking-wider ${
-                        user.role === 'super_admin'
-                          ? 'bg-amber-500/30 text-amber-300 border border-amber-500/40'
-                          : user.role === 'admin'
-                          ? 'bg-emerald-500/30 text-emerald-200 border border-emerald-500/40'
-                          : 'bg-blue-500/30 text-blue-200 border border-blue-500/40'
-                      }`}
-                    >
-                      {user.role.replace('_', ' ')}
-                    </span>
-                  </button>
-                  <button
-                    onClick={onLogoutClick}
-                    className="p-1 hover:bg-slate-800 text-slate-400 hover:text-red-400 rounded-lg transition-colors ml-1"
-                    title={t.logout}
-                  >
-                    <LogOut className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+                    {user.role.replace('_', ' ')}
+                  </span>
+                </button>
+                <button
+                  onClick={onLogoutClick}
+                  className="p-0.5 hover:bg-slate-800 text-slate-400 hover:text-red-400 rounded transition-colors ml-0.5"
+                  title={t.logout}
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
               </div>
             ) : (
               <button
                 onClick={onLoginClick}
-                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10.5px] transition-all shadow-sm"
+                className="h-7 inline-flex items-center space-x-1 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10.5px] transition-all"
               >
                 <LogIn className="w-3.5 h-3.5 text-emerald-200" />
                 <span>{t.login}</span>
               </button>
             )}
           </div>
+
+          {/* Mobile Actions Right Side: Notification Bell + Hamburger Menu Button */}
+          <div className="flex lg:hidden items-center space-x-1.5 shrink-0">
+            {/* Quick Notification Bell on Mobile Header */}
+            <button
+              onClick={() => setIsNotifOpen(!isNotifOpen)}
+              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700/80 relative"
+              title={lang === 'bn' ? 'নোটিফিকেশন' : 'Notifications'}
+            >
+              <BellRing className={`w-4 h-4 ${unreadNotifs.length > 0 ? 'text-amber-400 animate-bounce' : 'text-slate-400'}`} />
+              {unreadNotifs.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white font-extrabold text-[9px] w-4 h-4 flex items-center justify-center rounded-full border border-red-400">
+                  {unreadNotifs.length}
+                </span>
+              )}
+            </button>
+
+            {/* Hamburger Menu Toggle Button */}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="p-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-500 transition-colors"
+              title={isMobileMenuOpen ? "Close Menu" : "Open Menu"}
+            >
+              {isMobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+            </button>
+          </div>
         </div>
+
+        {/* Collapsible Mobile Hamburger Drawer Menu */}
+        {isMobileMenuOpen && (
+          <div className="lg:hidden mt-2 pt-2 border-t border-slate-800 space-y-2.5 animate-in slide-in-from-top-2">
+            <div className="grid grid-cols-2 gap-2 text-[11px]">
+              {/* Refresh Button */}
+              <button
+                onClick={() => {
+                  onRefresh();
+                  setIsMobileMenuOpen(false);
+                }}
+                disabled={loading || isSyncing}
+                className="py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold flex items-center justify-center space-x-1.5"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${loading || isSyncing ? 'animate-spin' : ''}`} />
+                <span>{lang === 'bn' ? 'রিফ্রেশ ডাটা' : 'Refresh Data'}</span>
+              </button>
+
+              {/* Theme Switcher */}
+              <button
+                onClick={() => {
+                  setTheme(theme === 'light' ? 'dark' : 'light');
+                  setIsMobileMenuOpen(false);
+                }}
+                className="py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold flex items-center justify-center space-x-1.5"
+              >
+                {theme === 'light' ? (
+                  <>
+                    <Moon className="w-3.5 h-3.5 text-amber-300" />
+                    <span>{lang === 'bn' ? 'ডার্ক মোড' : 'Dark Mode'}</span>
+                  </>
+                ) : (
+                  <>
+                    <Sun className="w-3.5 h-3.5 text-amber-400" />
+                    <span>{lang === 'bn' ? 'লাইট মোড' : 'Light Mode'}</span>
+                  </>
+                )}
+              </button>
+
+              {/* Language Switcher */}
+              <button
+                onClick={() => {
+                  setLang(lang === 'en' ? 'bn' : 'en');
+                  setIsMobileMenuOpen(false);
+                }}
+                className="py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold flex items-center justify-center space-x-1.5"
+              >
+                <Globe className="w-3.5 h-3.5 text-blue-400" />
+                <span>Language: <strong className="text-blue-300">{lang === 'en' ? 'বাংলা' : 'English'}</strong></span>
+              </button>
+
+              {/* Auto Sync Interval Selector */}
+              <div className="py-1.5 px-2.5 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-between text-slate-300">
+                <span className="text-[10px] font-semibold text-slate-400 inline-flex items-center gap-1">
+                  {user?.role === 'super_admin' ? (
+                    <Crown className="w-3.5 h-3.5 text-amber-400" />
+                  ) : (
+                    <Lock className="w-3.5 h-3.5 text-slate-500" />
+                  )}
+                  {t.autoRefresh}:
+                </span>
+                <select
+                  value={autoRefreshInterval}
+                  disabled={user?.role !== 'super_admin'}
+                  onChange={(e) => setAutoRefreshInterval(Number(e.target.value))}
+                  className="bg-transparent font-bold focus:outline-none text-[11px] text-amber-400"
+                >
+                  <option value={0} className="bg-slate-800 text-slate-300">{t.off}</option>
+                  <option value={5} className="bg-slate-800 text-slate-300">5s</option>
+                  <option value={10} className="bg-slate-800 text-slate-300">10s</option>
+                  <option value={15} className="bg-slate-800 text-slate-300">15s</option>
+                  <option value={30} className="bg-slate-800 text-slate-300">30s</option>
+                  <option value={60} className="bg-slate-800 text-slate-300">60s</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Super Admin Mobile Actions */}
+            {user?.role === 'super_admin' && (
+              <div className="grid grid-cols-2 gap-2 text-[11px]">
+                {onFirebaseUsersClick && (
+                  <button
+                    onClick={() => {
+                      onFirebaseUsersClick();
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="py-1.5 px-2.5 rounded-lg bg-orange-500/20 text-orange-300 border border-orange-500/40 font-bold flex items-center justify-center space-x-1.5"
+                  >
+                    <Crown className="w-3.5 h-3.5 text-orange-400" />
+                    <span>{lang === 'bn' ? 'ফায়ারবেস ইউজারস' : 'Firebase Users'}</span>
+                  </button>
+                )}
+                {onDevicesClick && (
+                  <button
+                    onClick={() => {
+                      onDevicesClick();
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="py-1.5 px-2.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold flex items-center justify-center space-x-1.5"
+                  >
+                    <Monitor className="w-3.5 h-3.5 text-amber-400" />
+                    <span>{lang === 'bn' ? 'ডিভাইস কন্ট্রোল' : 'Devices Control'}</span>
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Mobile User Profile Bar */}
+            <div className="pt-1 border-t border-slate-800 flex items-center justify-between">
+              {user ? (
+                <div className="w-full flex items-center justify-between p-2 rounded-xl bg-slate-800/80 border border-slate-700">
+                  <button
+                    onClick={() => {
+                      onProfileClick?.();
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="flex items-center space-x-2 text-left"
+                  >
+                    <UserCheck className="w-4 h-4 text-emerald-400" />
+                    <div>
+                      <div className="text-xs font-bold text-slate-100 capitalize">{user.username}</div>
+                      <div className="text-[9.5px] text-emerald-400 uppercase font-black tracking-wider">{user.role}</div>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => {
+                      onLogoutClick();
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="p-1.5 text-slate-400 hover:text-red-400 bg-slate-700/50 rounded-lg transition-colors flex items-center space-x-1 text-xs"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>{t.logout}</span>
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => {
+                    onLoginClick();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="w-full py-2 bg-emerald-600 text-white font-bold text-xs rounded-xl flex items-center justify-center space-x-1.5"
+                >
+                  <LogIn className="w-4 h-4" />
+                  <span>{t.login}</span>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Sync Info Footer inside Header */}
         {lastUpdated && (
-          <div className="mt-2 text-[10px] text-slate-400 flex items-center justify-between border-t border-slate-800/80 pt-1.5">
-            <span className="flex items-center gap-1.5 text-slate-400 text-[10px] font-semibold">
+          <div className="mt-1.5 text-[10px] text-slate-400 flex items-center justify-between border-t border-slate-800/80 pt-1">
+            <span className="flex items-center gap-1 text-slate-400 text-[10px] font-semibold">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
               {t.lastSync}: <span className="font-mono text-slate-200">{new Date(lastUpdated).toLocaleTimeString()}</span>
             </span>

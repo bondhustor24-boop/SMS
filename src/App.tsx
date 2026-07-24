@@ -21,10 +21,6 @@ import {
   markNotificationAsRead,
   DeviceNotification,
 } from './utils/deviceManager';
-import {
-  DashboardTemplateSelector,
-  DashboardTemplateId,
-} from './components/DashboardTemplateSelector';
 import { Sparkles, AlertCircle, RefreshCw, Layers, Bell, X } from 'lucide-react';
 
 const DEFAULT_SHEET_URL =
@@ -66,17 +62,6 @@ export default function App() {
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     return (localStorage.getItem('sms333_theme') as 'light' | 'dark') || 'light';
   });
-  const [dashboardTemplate, setDashboardTemplate] = useState<DashboardTemplateId>(() => {
-    return (localStorage.getItem('sms333_dashboard_template') as DashboardTemplateId) || 'executive';
-  });
-
-  const handleSelectTemplate = (tmpl: DashboardTemplateId) => {
-    setDashboardTemplate(tmpl);
-    localStorage.setItem('sms333_dashboard_template', tmpl);
-    if (tmpl === 'cyber' || tmpl === 'navy') {
-      setTheme('dark');
-    }
-  };
 
   // Sync theme class to html element & localStorage
   useEffect(() => {
@@ -363,91 +348,70 @@ export default function App() {
           </div>
         ) : (
           /* Full Unlocked Dashboard Content */
-          <div className="space-y-4">
-            {/* Dashboard 5 Professional Templates Switcher */}
-            <DashboardTemplateSelector
-              currentTemplate={dashboardTemplate}
-              onSelectTemplate={handleSelectTemplate}
+          <>
+            {/* Google Sheet URL Bar & Controls (Super Admin Only) */}
+            {user.role === 'super_admin' && (
+              <SheetUrlInput
+                currentUrl={sheetUrl}
+                onLoadUrl={handleLoadNewUrl}
+                lang={lang}
+                userRole={user.role}
+              />
+            )}
+
+            {/* Access Restricted Warning Banner / Instructions */}
+            {accessError && (
+              <AccessInstructionsModal
+                sheetUrl={data?.sheetUrl || sheetUrl}
+                onRetry={() => fetchSheetData(sheetUrl)}
+                lang={lang}
+              />
+            )}
+
+            {/* General Error Alert */}
+            {errorMessage && !accessError && (
+              <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-6 flex items-center space-x-3 text-red-800 text-xs sm:text-sm">
+                <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
+                <div className="flex-1">
+                  <p className="font-bold">Error Loading Sheet</p>
+                  <p>{errorMessage}</p>
+                </div>
+                <button
+                  onClick={() => fetchSheetData(sheetUrl)}
+                  className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium text-xs transition-colors shrink-0"
+                >
+                  Try Again
+                </button>
+              </div>
+            )}
+
+            {/* Metrics Overview Cards */}
+            <MetricsOverview
+              totalRows={data?.totalRows || 0}
+              filteredRows={data?.rows?.length || 0}
+              totalColumns={data?.headers?.length || 0}
+              updatedAt={data?.updatedAt || null}
               lang={lang}
             />
 
-            <div
-              className={`transition-all duration-300 ${
-                dashboardTemplate === 'cyber'
-                  ? 'bg-slate-950 p-3 sm:p-5 rounded-3xl border border-cyan-500/30 shadow-2xl text-cyan-300'
-                  : dashboardTemplate === 'navy'
-                  ? 'bg-slate-900 p-3 sm:p-5 rounded-3xl border border-indigo-900/60 shadow-2xl text-slate-100'
-                  : dashboardTemplate === 'minimal'
-                  ? 'bg-stone-50/50 dark:bg-zinc-900 p-3 sm:p-5 rounded-3xl border border-stone-200/80 dark:border-zinc-800'
-                  : dashboardTemplate === 'operations'
-                  ? 'bg-amber-950/5 dark:bg-slate-950 p-3 sm:p-5 rounded-3xl border border-amber-500/20 shadow-md'
-                  : ''
-              }`}
-            >
-              {/* Google Sheet URL Bar & Controls (Super Admin Only) */}
-              {user.role === 'super_admin' && (
-                <SheetUrlInput
-                  currentUrl={sheetUrl}
-                  onLoadUrl={handleLoadNewUrl}
-                  lang={lang}
-                  userRole={user.role}
-                />
-              )}
+            {/* Featured Last 3 SMS & Timestamps Widget */}
+            <RecentSmsWidget
+              rows={data?.rows || []}
+              headers={data?.headers || []}
+              loading={loading}
+              lang={lang}
+              userRole={user.role}
+            />
 
-              {/* Access Restricted Warning Banner / Instructions */}
-              {accessError && (
-                <AccessInstructionsModal
-                  sheetUrl={data?.sheetUrl || sheetUrl}
-                  onRetry={() => fetchSheetData(sheetUrl)}
-                  lang={lang}
-                />
-              )}
-
-              {/* General Error Alert */}
-              {errorMessage && !accessError && (
-                <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-6 flex items-center space-x-3 text-red-800 text-xs sm:text-sm">
-                  <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
-                  <div className="flex-1">
-                    <p className="font-bold">Error Loading Sheet</p>
-                    <p>{errorMessage}</p>
-                  </div>
-                  <button
-                    onClick={() => fetchSheetData(sheetUrl)}
-                    className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium text-xs transition-colors shrink-0"
-                  >
-                    Try Again
-                  </button>
-                </div>
-              )}
-
-              {/* Metrics Overview Cards */}
-              <MetricsOverview
-                totalRows={data?.totalRows || 0}
-                filteredRows={data?.rows?.length || 0}
-                totalColumns={data?.headers?.length || 0}
-                updatedAt={data?.updatedAt || null}
-                lang={lang}
-              />
-
-              {/* Featured Last 3 SMS & Timestamps Widget */}
-              <RecentSmsWidget
-                rows={data?.rows || []}
-                headers={data?.headers || []}
-                loading={loading}
-                lang={lang}
-                userRole={user.role}
-              />
-
-              {/* Interactive Data Table & Controls */}
-              <DataTable
-                headers={data?.headers || []}
-                rows={data?.rows || []}
-                loading={loading}
-                lang={lang}
-                userRole={user.role}
-              />
-            </div>
-          </div>
+            {/* Interactive Data Table & Controls */}
+            <DataTable
+              headers={data?.headers || []}
+              rows={data?.rows || []}
+              loading={loading}
+              lang={lang}
+              userRole={user.role}
+            />
+          </>
         )}
       </main>
     </div>
