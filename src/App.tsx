@@ -161,13 +161,15 @@ export default function App() {
         ) : (
           /* Full Unlocked Dashboard Content */
           <>
-            {/* Google Sheet URL Bar & Controls */}
-            <SheetUrlInput
-              currentUrl={sheetUrl}
-              onLoadUrl={handleLoadNewUrl}
-              lang={lang}
-              userRole={user.role}
-            />
+            {/* Google Sheet URL Bar & Controls (Super Admin Only) */}
+            {user.role === 'super_admin' && (
+              <SheetUrlInput
+                currentUrl={sheetUrl}
+                onLoadUrl={handleLoadNewUrl}
+                lang={lang}
+                userRole={user.role}
+              />
+            )}
 
             {/* Access Restricted Warning Banner / Instructions */}
             {accessError && (
@@ -218,6 +220,7 @@ export default function App() {
               rows={data?.rows || []}
               loading={loading}
               lang={lang}
+              userRole={user.role}
             />
           </>
         )}

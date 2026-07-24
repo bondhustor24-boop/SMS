@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { SheetRow, ViewMode } from '../types';
+import React, { useState, useMemo, useEffect } from 'react';
+import { SheetRow, ViewMode, UserRole } from '../types';
 import {
   Search,
   ArrowUpDown,
@@ -15,6 +15,9 @@ import {
   Code,
   FileSpreadsheet,
   Layers,
+  Lock,
+  Unlock,
+  Crown,
 } from 'lucide-react';
 
 interface DataTableProps {
@@ -22,6 +25,7 @@ interface DataTableProps {
   rows: SheetRow[];
   loading: boolean;
   lang: 'bn' | 'en';
+  userRole?: UserRole;
 }
 
 export const DataTable: React.FC<DataTableProps> = ({
@@ -29,16 +33,56 @@ export const DataTable: React.FC<DataTableProps> = ({
   rows,
   loading,
   lang,
+  userRole = 'user',
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [hiddenColumns, setHiddenColumns] = useState<Record<string, boolean>>({});
   const [showColumnPicker, setShowColumnPicker] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>('table');
+  // Default view mode set to 'cards' (Grid View) as requested
+  const [viewMode, setViewMode] = useState<ViewMode>('cards');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [copiedRowId, setCopiedRowId] = useState<string | null>(null);
+
+  // Super Admin Column Locking state (persisted in localStorage)
+  const [lockedColumns, setLockedColumns] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem('sms333_locked_columns');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const [superAdminHiddenColumns, setSuperAdminHiddenColumns] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem('sms333_sa_hidden_columns');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const toggleLockColumn = (header: string) => {
+    if (userRole !== 'super_admin') return;
+    setLockedColumns((prev) => {
+      const isCurrentlyLocked = !!prev[header];
+      const updated = { ...prev, [header]: !isCurrentlyLocked };
+      localStorage.setItem('sms333_locked_columns', JSON.stringify(updated));
+      
+      // When locking, record current hidden state as the fixed locked state
+      if (!isCurrentlyLocked) {
+        setSuperAdminHiddenColumns((saPrev) => {
+          const saUpdated = { ...saPrev, [header]: !!hiddenColumns[header] };
+          localStorage.setItem('sms333_sa_hidden_columns', JSON.stringify(saUpdated));
+          return saUpdated;
+        });
+      }
+      return updated;
+    });
+  };
 
   // Translation strings
   const t = {
@@ -59,6 +103,8 @@ export const DataTable: React.FC<DataTableProps> = ({
       copied: "Copied!",
       allCols: "Select All",
       hideAllCols: "Deselect All",
+      saLockTitle: "Super Admin Column Lock",
+      lockedBySa: "Locked by Super Admin",
     },
     bn: {
       searchPlaceholder: "যেকোনো তথ্য দিয়ে খুঁজুন (Search)...",
@@ -77,13 +123,21 @@ export const DataTable: React.FC<DataTableProps> = ({
       copied: "কপি হয়েছে!",
       allCols: "সব সিলেক্ট করুন",
       hideAllCols: "সব তুলে দিন",
+      saLockTitle: "সুপার এডমিন কলাম লক",
+      lockedBySa: "Super Admin দ্বারা লক করা",
     },
   }[lang];
 
-  // Visible columns
+  // Visible columns calculated based on user role and locks
   const visibleHeaders = useMemo(() => {
-    return headers.filter((h) => !hiddenColumns[h]);
-  }, [headers, hiddenColumns]);
+    return headers.filter((h) => {
+      // If column is locked by Super Admin and current user is not Super Admin
+      if (userRole !== 'super_admin' && lockedColumns[h]) {
+        return !superAdminHiddenColumns[h];
+      }
+      return !hiddenColumns[h];
+    });
+  }, [headers, hiddenColumns, lockedColumns, superAdminHiddenColumns, userRole]);
 
   // Filtered rows
   const filteredRows = useMemo(() => {
@@ -283,9 +337,16 @@ export const DataTable: React.FC<DataTableProps> = ({
 
             {/* Column Picker Dropdown */}
             {showColumnPicker && (
-              <div className="absolute right-0 mt-1.5 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-50 p-2 text-[10px]">
-                <div className="flex items-center justify-between pb-1 mb-1 border-b border-slate-100 dark:border-slate-700 font-semibold text-slate-800 dark:text-slate-200">
-                  <span>{t.columns}</span>
+              <div className="absolute right-0 mt-1.5 w-60 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-50 p-2.5 text-[10px]">
+                <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-100 dark:border-slate-700 font-semibold text-slate-800 dark:text-slate-200">
+                  <div className="flex items-center gap-1">
+                    <span>{t.columns}</span>
+                    {userRole === 'super_admin' && (
+                      <span className="bg-amber-500/20 text-amber-500 border border-amber-500/30 px-1 py-0.1 rounded text-[8px] font-bold flex items-center gap-0.5">
+                        <Crown className="w-2.5 h-2.5" /> Lock Control
+                      </span>
+                    )}
+                  </div>
                   <div className="flex gap-1.5">
                     <button
                       onClick={() => setHiddenColumns({})}
@@ -296,22 +357,64 @@ export const DataTable: React.FC<DataTableProps> = ({
                   </div>
                 </div>
 
-                <div className="max-h-48 overflow-y-auto space-y-0.5 pr-1">
+                <div className="max-h-56 overflow-y-auto space-y-1 pr-1">
                   {headers.map((header) => {
-                    const isVisible = !hiddenColumns[header];
+                    const isLocked = !!lockedColumns[header];
+                    const isVisible = userRole === 'super_admin' 
+                      ? !hiddenColumns[header]
+                      : isLocked ? !superAdminHiddenColumns[header] : !hiddenColumns[header];
+
                     return (
-                      <label
+                      <div
                         key={header}
-                        className="flex items-center space-x-1.5 text-[10px] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 p-1 rounded cursor-pointer select-none"
+                        className={`flex items-center justify-between text-[10px] p-1 rounded transition-colors ${
+                          isLocked 
+                            ? 'bg-amber-500/10 border border-amber-500/20' 
+                            : 'hover:bg-slate-50 dark:hover:bg-slate-700/50'
+                        }`}
                       >
-                        <input
-                          type="checkbox"
-                          checked={isVisible}
-                          onChange={() => toggleColumnHide(header)}
-                          className="rounded text-emerald-600 focus:ring-emerald-500 w-3 h-3"
-                        />
-                        <span className="truncate">{header}</span>
-                      </label>
+                        <label className="flex items-center space-x-1.5 cursor-pointer select-none min-w-0 flex-1">
+                          <input
+                            type="checkbox"
+                            checked={isVisible}
+                            disabled={userRole !== 'super_admin' && isLocked}
+                            onChange={() => {
+                              if (userRole === 'super_admin' || !isLocked) {
+                                toggleColumnHide(header);
+                              }
+                            }}
+                            className="rounded text-emerald-600 focus:ring-emerald-500 w-3 h-3 disabled:opacity-50"
+                          />
+                          <span className={`truncate text-slate-700 dark:text-slate-300 ${isLocked ? 'font-semibold text-amber-700 dark:text-amber-400' : ''}`}>
+                            {header}
+                          </span>
+                        </label>
+
+                        {/* Super Admin Lock Button or User Lock Badge */}
+                        <div className="flex items-center gap-1 ml-1 shrink-0">
+                          {userRole === 'super_admin' ? (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleLockColumn(header);
+                              }}
+                              className={`p-0.5 rounded transition-colors ${
+                                isLocked
+                                  ? 'bg-amber-500 text-white hover:bg-amber-600'
+                                  : 'bg-slate-200 dark:bg-slate-700 text-slate-500 hover:text-amber-500'
+                              }`}
+                              title={isLocked ? 'Unlock Column for users' : 'Lock Column for users'}
+                            >
+                              {isLocked ? <Lock className="w-2.5 h-2.5" /> : <Unlock className="w-2.5 h-2.5" />}
+                            </button>
+                          ) : isLocked ? (
+                            <span className="text-[8px] bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800 px-1 py-0.2 rounded font-medium flex items-center gap-0.5">
+                              <Lock className="w-2 h-2" /> Locked
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
                     );
                   })}
                 </div>

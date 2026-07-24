@@ -22,6 +22,10 @@ export const SheetUrlInput: React.FC<SheetUrlInputProps> = ({
 
   const isSuperAdmin = userRole === 'super_admin';
 
+  if (!isSuperAdmin) {
+    return null;
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isSuperAdmin && inputUrl.trim()) {
