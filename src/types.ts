@@ -43,6 +43,7 @@ export interface DeviceSession {
   location: string;
   loginTime: string;
   lastActive: string;
+  lastAction?: string;
   status: 'active' | 'blocked' | 'logged_out';
   isCurrentSession?: boolean;
 }

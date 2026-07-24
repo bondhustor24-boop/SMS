@@ -109,6 +109,7 @@ export const DeviceManagementModal: React.FC<DeviceManagementModalProps> = ({
       deviceOs: "Device & Browser",
       networkIp: "IP & Location",
       loginTime: "Login Time",
+      userActivity: "Live Activity / Action",
       status: "Status",
       actions: "Actions",
       noSessions: "No devices found matching criteria.",
@@ -143,6 +144,7 @@ export const DeviceManagementModal: React.FC<DeviceManagementModalProps> = ({
       deviceOs: "ডিভাইস ও ব্রাউজার",
       networkIp: "IP ও লোকেশন",
       loginTime: "লগইন সময়",
+      userActivity: "লাইভ অ্যাক্টিভিটি / কাজ",
       status: "স্ট্যাটাস",
       actions: "অ্যাকশন",
       noSessions: "কোনো ডিভাইস পাওয়া যায়নি।",
@@ -361,6 +363,7 @@ export const DeviceManagementModal: React.FC<DeviceManagementModalProps> = ({
                     <th className="p-2 sm:p-2.5">{t.deviceOs}</th>
                     <th className="p-2 sm:p-2.5">{t.networkIp}</th>
                     <th className="p-2 sm:p-2.5">{t.loginTime}</th>
+                    <th className="p-2 sm:p-2.5">{t.userActivity}</th>
                     <th className="p-2 sm:p-2.5">{t.status}</th>
                     <th className="p-2 sm:p-2.5 text-right">{t.actions}</th>
                   </tr>
@@ -446,6 +449,19 @@ export const DeviceManagementModal: React.FC<DeviceManagementModalProps> = ({
                           <div className="flex items-center text-[10px] text-slate-600 dark:text-slate-400 space-x-1">
                             <Clock className="w-3 h-3 text-slate-400 shrink-0" />
                             <span>{new Date(session.loginTime).toLocaleTimeString()}</span>
+                          </div>
+                        </td>
+
+                        {/* User Activity / Action */}
+                        <td className="p-2 sm:p-2.5">
+                          <div className="space-y-0.5">
+                            <span className="inline-block px-2 py-0.5 rounded text-[9px] font-semibold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                              {session.lastAction || (lang === 'bn' ? 'সিস্টেমে সক্রিয় আছেন' : 'Active in System')}
+                            </span>
+                            <p className="text-[8px] text-slate-400 font-mono">
+                              {lang === 'bn' ? 'সর্বশেষ এক্টিভ: ' : 'Last seen: '}
+                              {new Date(session.lastActive).toLocaleTimeString()}
+                            </p>
                           </div>
                         </td>
 

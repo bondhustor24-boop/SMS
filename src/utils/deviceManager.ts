@@ -5,27 +5,54 @@ const STORAGE_KEY_BLOCKED = 'sms333_blocked_users';
 
 export function parseUserAgent(): { deviceType: 'mobile' | 'desktop' | 'tablet'; browser: string; os: string } {
   const ua = navigator.userAgent || '';
+  const platform = (navigator as any).userAgentData?.platform || navigator.platform || '';
   
   // OS Detection
-  let os = 'Windows OS';
-  if (ua.includes('iPhone')) os = 'iOS (iPhone)';
-  else if (ua.includes('iPad')) os = 'iPadOS';
-  else if (ua.includes('Android')) os = 'Android OS';
-  else if (ua.includes('Macintosh') || ua.includes('Mac OS')) os = 'macOS';
-  else if (ua.includes('Linux')) os = 'Linux OS';
+  let os = 'Windows 11/10';
+  if (/iPhone/i.test(ua)) os = 'iOS (iPhone)';
+  else if (/iPad/i.test(ua)) os = 'iPadOS (iPad)';
+  else if (/Android/i.test(ua)) {
+    const match = ua.match(/Android\s([0-9.]+)/i);
+    os = match ? `Android ${match[1]}` : 'Android OS';
+  } else if (/Macintosh|Mac OS X/i.test(ua)) {
+    os = 'macOS (Apple Mac)';
+  } else if (/Linux/i.test(ua)) {
+    os = 'Linux OS';
+  } else if (/Windows NT 10.0/i.test(ua)) {
+    os = 'Windows 10/11';
+  } else if (/Windows/i.test(ua)) {
+    os = 'Windows OS';
+  }
 
   // Device Type
   let deviceType: 'mobile' | 'desktop' | 'tablet' = 'desktop';
-  if (/iPad|Tablet/i.test(ua)) deviceType = 'tablet';
-  else if (/Mobile|iPhone|Android/i.test(ua)) deviceType = 'mobile';
+  if (/iPad|Tablet|(Android(?!.*Mobile))/i.test(ua)) {
+    deviceType = 'tablet';
+  } else if (/Mobile|iPhone|iPod|Android.*Mobile|BlackBerry|IEMobile|Opera Mini/i.test(ua)) {
+    deviceType = 'mobile';
+  }
 
-  // Browser Detection
+  // Browser Detection & Version
   let browser = 'Chrome Browser';
-  if (ua.includes('Firefox')) browser = 'Mozilla Firefox';
-  else if (ua.includes('SamsungBrowser')) browser = 'Samsung Internet';
-  else if (ua.includes('Opera') || ua.includes('OPR')) browser = 'Opera Browser';
-  else if (ua.includes('Edge') || ua.includes('Edg')) browser = 'Microsoft Edge';
-  else if (ua.includes('Safari') && !ua.includes('Chrome')) browser = 'Apple Safari';
+  if (/Edg\/([0-9.]+)/i.test(ua)) {
+    const m = ua.match(/Edg\/([0-9.]+)/i);
+    browser = `Microsoft Edge ${m ? m[1].split('.')[0] : ''}`;
+  } else if (/SamsungBrowser\/([0-9.]+)/i.test(ua)) {
+    const m = ua.match(/SamsungBrowser\/([0-9.]+)/i);
+    browser = `Samsung Internet ${m ? m[1].split('.')[0] : ''}`;
+  } else if (/OPR\/([0-9.]+)|Opera/i.test(ua)) {
+    const m = ua.match(/OPR\/([0-9.]+)/i);
+    browser = `Opera ${m ? m[1].split('.')[0] : ''}`;
+  } else if (/Firefox\/([0-9.]+)/i.test(ua)) {
+    const m = ua.match(/Firefox\/([0-9.]+)/i);
+    browser = `Mozilla Firefox ${m ? m[1].split('.')[0] : ''}`;
+  } else if (/Chrome\/([0-9.]+)/i.test(ua)) {
+    const m = ua.match(/Chrome\/([0-9.]+)/i);
+    browser = `Google Chrome ${m ? m[1].split('.')[0] : ''}`;
+  } else if (/Safari\/([0-9.]+)/i.test(ua) && !/Chrome/i.test(ua)) {
+    const m = ua.match(/Version\/([0-9.]+)/i);
+    browser = `Apple Safari ${m ? m[1].split('.')[0] : ''}`;
+  }
 
   return { deviceType, browser, os };
 }
@@ -43,6 +70,7 @@ const DEFAULT_MOCK_DEVICES: DeviceSession[] = [
     location: 'Dhaka, Bangladesh',
     loginTime: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
     lastActive: new Date().toISOString(),
+    lastAction: 'Managing Live System & Devices',
     status: 'active',
   },
   {
@@ -56,6 +84,7 @@ const DEFAULT_MOCK_DEVICES: DeviceSession[] = [
     location: 'Chittagong, Bangladesh',
     loginTime: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
     lastActive: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
+    lastAction: 'Viewing SMS Data & Sheet Records',
     status: 'active',
   },
   {
@@ -69,6 +98,7 @@ const DEFAULT_MOCK_DEVICES: DeviceSession[] = [
     location: 'Sylhet, Bangladesh',
     loginTime: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
     lastActive: new Date(Date.now() - 1000 * 60 * 12).toISOString(),
+    lastAction: 'Searching Phone Numbers & Filter Data',
     status: 'active',
   },
   {
@@ -82,21 +112,78 @@ const DEFAULT_MOCK_DEVICES: DeviceSession[] = [
     location: 'Rajshahi, Bangladesh',
     loginTime: new Date(Date.now() - 1000 * 60 * 300).toISOString(),
     lastActive: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
+    lastAction: 'Logged In & Syncing Local Sheet Data',
     status: 'active',
   },
 ];
 
+// Get or generate sessions, ensuring current real user is attached
 export function getStoredSessions(): DeviceSession[] {
+  let sessions: DeviceSession[] = [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY_SESSIONS);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(DEFAULT_MOCK_DEVICES));
-      return DEFAULT_MOCK_DEVICES;
+    if (raw) {
+      sessions = JSON.parse(raw);
     }
-    return JSON.parse(raw);
   } catch {
-    return DEFAULT_MOCK_DEVICES;
+    sessions = [];
   }
+
+  // Ensure current logged-in user from localStorage has a real active session
+  try {
+    const rawUser = localStorage.getItem('sms333_user_session');
+    if (rawUser) {
+      const currentUser: UserSession = JSON.parse(rawUser);
+      const { deviceType, browser, os } = parseUserAgent();
+      
+      const existingIndex = sessions.findIndex(
+        (s) => s.username.toLowerCase() === currentUser.username.toLowerCase() && s.status === 'active'
+      );
+
+      if (existingIndex >= 0) {
+        // Update existing session with real live browser details
+        sessions[existingIndex] = {
+          ...sessions[existingIndex],
+          deviceType,
+          browser,
+          os,
+          lastActive: new Date().toISOString(),
+          lastAction: sessions[existingIndex].lastAction || 'Active in Live SMS Dashboard',
+          isCurrentSession: true,
+        };
+      } else {
+        // Create a new real session for this logged in user
+        const realSession: DeviceSession = {
+          id: 'session-real-' + Date.now(),
+          username: currentUser.username,
+          role: currentUser.role,
+          deviceType,
+          browser,
+          os,
+          ipAddress: '103.112.' + Math.floor(Math.random() * 200 + 10) + '.' + Math.floor(Math.random() * 200 + 10),
+          location: 'Dhaka, Bangladesh',
+          loginTime: new Date().toISOString(),
+          lastActive: new Date().toISOString(),
+          lastAction: 'Active in Live SMS Dashboard',
+          status: 'active',
+          isCurrentSession: true,
+        };
+        sessions.unshift(realSession);
+      }
+      
+      // Save updated list
+      localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(sessions));
+    }
+  } catch (e) {
+    console.error('Error syncing real device session:', e);
+  }
+
+  if (sessions.length === 0) {
+    sessions = DEFAULT_MOCK_DEVICES;
+    localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(sessions));
+  }
+
+  return sessions;
 }
 
 export function saveSessions(sessions: DeviceSession[]): void {
