@@ -1,5 +1,5 @@
 import React from 'react';
-import { RefreshCw, ShieldCheck, Globe, Database, User, LogIn, LogOut, Crown, Lock, Sun, Moon } from 'lucide-react';
+import { RefreshCw, ShieldCheck, Globe, Database, User, LogIn, LogOut, Crown, Lock, Sun, Moon, Monitor } from 'lucide-react';
 import { UserSession } from '../types';
 
 interface HeaderProps {
@@ -11,6 +11,7 @@ interface HeaderProps {
   user: UserSession | null;
   onLoginClick: () => void;
   onLogoutClick: () => void;
+  onDevicesClick?: () => void;
   onRefresh: () => void;
   autoRefreshInterval: number;
   setAutoRefreshInterval: (seconds: number) => void;
@@ -29,6 +30,7 @@ export const Header: React.FC<HeaderProps> = ({
   user,
   onLoginClick,
   onLogoutClick,
+  onDevicesClick,
   onRefresh,
   autoRefreshInterval,
   setAutoRefreshInterval,
@@ -166,41 +168,54 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* Login / User Status */}
             {user ? (
-              <div
-                className={`flex items-center space-x-1 border rounded-md px-2 py-0.5 text-[10px] ${
-                  user.role === 'super_admin'
-                    ? 'bg-amber-950/80 border-amber-500/50 text-amber-200'
-                    : user.role === 'admin'
-                    ? 'bg-emerald-950/80 border-emerald-500/40 text-emerald-200'
-                    : 'bg-blue-950/80 border-blue-500/40 text-blue-200'
-                }`}
-              >
-                <div className="flex items-center space-x-1 font-semibold">
-                  {user.role === 'super_admin' ? (
-                    <Crown className="w-3 h-3 text-amber-400" />
-                  ) : (
-                    <User className="w-3 h-3 text-emerald-400" />
-                  )}
-                  <span className="capitalize text-[10px]">{user.username}</span>
-                  <span
-                    className={`text-[9px] px-1 py-0.1 rounded uppercase font-bold ${
-                      user.role === 'super_admin'
-                        ? 'bg-amber-500/30 text-amber-300 border border-amber-500/40'
-                        : user.role === 'admin'
-                        ? 'bg-emerald-500/30 text-emerald-200 border border-emerald-500/40'
-                        : 'bg-blue-500/30 text-blue-200 border border-blue-500/40'
-                    }`}
+              <div className="flex items-center space-x-1.5">
+                {user.role === 'super_admin' && onDevicesClick && (
+                  <button
+                    onClick={onDevicesClick}
+                    className="flex items-center space-x-1 px-2 py-0.5 rounded-md bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[10px] font-semibold transition-colors shadow-xs"
+                    title="Super Admin Live Device & Session Control"
                   >
-                    {user.role.replace('_', ' ')}
-                  </span>
-                </div>
-                <button
-                  onClick={onLogoutClick}
-                  className="p-0.5 hover:bg-slate-800 text-slate-400 hover:text-red-400 rounded transition-colors ml-0.5"
-                  title={t.logout}
+                    <Monitor className="w-3 h-3 text-amber-400" />
+                    <span>{lang === 'bn' ? 'ডিভাইস কন্ট্রোল' : 'Device Control'}</span>
+                  </button>
+                )}
+
+                <div
+                  className={`flex items-center space-x-1 border rounded-md px-2 py-0.5 text-[10px] ${
+                    user.role === 'super_admin'
+                      ? 'bg-amber-950/80 border-amber-500/50 text-amber-200'
+                      : user.role === 'admin'
+                      ? 'bg-emerald-950/80 border-emerald-500/40 text-emerald-200'
+                      : 'bg-blue-950/80 border-blue-500/40 text-blue-200'
+                  }`}
                 >
-                  <LogOut className="w-3 h-3" />
-                </button>
+                  <div className="flex items-center space-x-1 font-semibold">
+                    {user.role === 'super_admin' ? (
+                      <Crown className="w-3 h-3 text-amber-400" />
+                    ) : (
+                      <User className="w-3 h-3 text-emerald-400" />
+                    )}
+                    <span className="capitalize text-[10px]">{user.username}</span>
+                    <span
+                      className={`text-[9px] px-1 py-0.1 rounded uppercase font-bold ${
+                        user.role === 'super_admin'
+                          ? 'bg-amber-500/30 text-amber-300 border border-amber-500/40'
+                          : user.role === 'admin'
+                          ? 'bg-emerald-500/30 text-emerald-200 border border-emerald-500/40'
+                          : 'bg-blue-500/30 text-blue-200 border border-blue-500/40'
+                      }`}
+                    >
+                      {user.role.replace('_', ' ')}
+                    </span>
+                  </div>
+                  <button
+                    onClick={onLogoutClick}
+                    className="p-0.5 hover:bg-slate-800 text-slate-400 hover:text-red-400 rounded transition-colors ml-0.5"
+                    title={t.logout}
+                  >
+                    <LogOut className="w-3 h-3" />
+                  </button>
+                </div>
               </div>
             ) : (
               <button

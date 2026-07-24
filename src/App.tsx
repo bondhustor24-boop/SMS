@@ -8,7 +8,15 @@ import { RecentSmsWidget } from './components/RecentSmsWidget';
 import { DataTable } from './components/DataTable';
 import { AccessInstructionsModal } from './components/AccessInstructionsModal';
 import { LoginModal } from './components/LoginModal';
-import { Sparkles, AlertCircle, RefreshCw, Layers } from 'lucide-react';
+import { DeviceManagementModal } from './components/DeviceManagementModal';
+import {
+  isUserBlocked,
+  getStoredSessions,
+  getUserUnreadNotifications,
+  markNotificationAsRead,
+  DeviceNotification,
+} from './utils/deviceManager';
+import { Sparkles, AlertCircle, RefreshCw, Layers, Bell, X } from 'lucide-react';
 
 const DEFAULT_SHEET_URL =
   'https://docs.google.com/spreadsheets/d/1hLt1v3C83j7aTu4nev35w9j7dwiVdYRD1QzyUTgWzLM/edit?gid=193362198#gid=193362198';
@@ -29,6 +37,8 @@ export default function App() {
     return null;
   });
   const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
+  const [isDeviceModalOpen, setIsDeviceModalOpen] = useState<boolean>(false);
+  const [unreadNotifs, setUnreadNotifs] = useState<DeviceNotification[]>([]);
   const [data, setData] = useState<SheetDataResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
@@ -50,6 +60,47 @@ export default function App() {
     }
   }, [theme]);
 
+  // Periodic check if current logged in user has been blocked or remotely logged out by Super Admin
+  useEffect(() => {
+    if (!user) return;
+
+    const interval = setInterval(() => {
+      // 1. Check if user is blocked
+      if (isUserBlocked(user.username)) {
+        alert(
+          lang === 'bn'
+            ? 'আপনার অ্যাকাউন্টটি সুপার এডমিন দ্বারা ব্লক করা হয়েছে!'
+            : 'Your account has been BLOCKED by Super Admin!'
+        );
+        handleLogout();
+        return;
+      }
+
+      // 2. Check if user session was remotely terminated
+      if (user.sessionId) {
+        const sessions = getStoredSessions();
+        const currentSess = sessions.find((s) => s.id === user.sessionId);
+        if (currentSess && currentSess.status === 'logged_out') {
+          alert(
+            lang === 'bn'
+              ? 'আপনার ডিভাইসটি সুপার এডমিন দ্বারা রিমোট লগআউট করা হয়েছে!'
+              : 'Your device was remotely logged out by Super Admin!'
+          );
+          handleLogout();
+          return;
+        }
+      }
+
+      // 3. Check for Super Admin Notifications
+      const notifs = getUserUnreadNotifications(user.username);
+      if (notifs.length > 0) {
+        setUnreadNotifs(notifs);
+      }
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [user, lang]);
+
   const handleLoginSuccess = (userSession: UserSession) => {
     setUser(userSession);
     localStorage.setItem('sms333_user_session', JSON.stringify(userSession));
@@ -58,6 +109,7 @@ export default function App() {
   const handleLogout = () => {
     setUser(null);
     localStorage.removeItem('sms333_user_session');
+    setIsDeviceModalOpen(false);
   };
 
   // Save active sheet URL in local storage
@@ -137,6 +189,7 @@ export default function App() {
         user={user}
         onLoginClick={() => setIsLoginModalOpen(true)}
         onLogoutClick={handleLogout}
+        onDevicesClick={() => setIsDeviceModalOpen(true)}
         onRefresh={() => fetchSheetData(sheetUrl, false)}
         autoRefreshInterval={autoRefreshInterval}
         setAutoRefreshInterval={setAutoRefreshInterval}
@@ -145,6 +198,62 @@ export default function App() {
         theme={theme}
         setTheme={setTheme}
       />
+
+      {/* Super Admin Device & Session Management Modal */}
+      {user?.role === 'super_admin' && (
+        <DeviceManagementModal
+          isOpen={isDeviceModalOpen}
+          onClose={() => setIsDeviceModalOpen(false)}
+          currentUser={user}
+          lang={lang}
+        />
+      )}
+
+      {/* Real-Time Live Notification Alert Modal */}
+      {unreadNotifs.length > 0 && (
+        <div className="fixed inset-0 z-70 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 border border-blue-500/50 rounded-2xl p-5 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center space-x-3 text-blue-500 border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div className="p-2 bg-blue-500/10 rounded-xl">
+                <Bell className="w-6 h-6 text-blue-500 animate-bounce" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm sm:text-base">
+                  {lang === 'bn' ? 'সুপার এডমিন বার্তা / নোটিফিকেশন' : 'Super Admin Alert Notification'}
+                </h3>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                  {lang === 'bn' ? 'এডমিন আপনার সেশনে বার্তা পাঠিয়েছেন' : 'Admin sent an official notification to your device'}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+              {unreadNotifs.map((notif) => (
+                <div
+                  key={notif.id}
+                  className="p-3 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 rounded-xl text-xs space-y-1.5"
+                >
+                  <div className="flex items-center justify-between text-[10px] text-blue-600 dark:text-blue-400 font-bold">
+                    <span>Sender: {notif.senderUsername}</span>
+                    <span>{new Date(notif.timestamp).toLocaleTimeString()}</span>
+                  </div>
+                  <p className="text-slate-800 dark:text-slate-100 font-medium whitespace-pre-wrap">{notif.message}</p>
+                </div>
+              ))}
+            </div>
+
+            <button
+              onClick={() => {
+                unreadNotifs.forEach((n) => markNotificationAsRead(n.id));
+                setUnreadNotifs([]);
+              }}
+              className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl transition-colors shadow-xs"
+            >
+              {lang === 'bn' ? 'বুঝেছি / পঠিত হিসাবে চিহ্নিত করুন' : 'Acknowledge & Close'}
+            </button>
+          </div>
+        </div>
+      )}
 
       <main className="max-w-7xl mx-auto px-2.5 sm:px-6 pt-3 sm:pt-6">
         {!user ? (

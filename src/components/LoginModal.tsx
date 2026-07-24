@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Lock, User, Key, LogIn, ShieldAlert, CheckCircle, Eye, EyeOff, Sparkles, RefreshCw, Crown } from 'lucide-react';
 import { UserRole, UserSession } from '../types';
 import { fetchGoogleSheetData } from '../utils/sheetFetcher';
+import { isUserBlocked, registerNewSession } from '../utils/deviceManager';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -147,11 +148,33 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         }
       }
 
+      // Check if user is blocked by Super Admin
+      if (isUserBlocked(inputUser)) {
+        setError(
+          lang === 'bn'
+            ? 'আপনার অ্যাকাউন্টটি সুপার এডমিন দ্বারা ব্লক করা হয়েছে! (Account Blocked by Super Admin)'
+            : 'Your account has been BLOCKED by Super Admin!'
+        );
+        setLoading(false);
+        return;
+      }
+
       if (matchedRow) {
-        onLoginSuccess({
-          username: matchedUser,
-          role: matchedRole,
-        });
+        if (isUserBlocked(matchedUser)) {
+          setError(
+            lang === 'bn'
+              ? 'আপনার অ্যাকাউন্টটি সুপার এডমিন দ্বারা ব্লক করা হয়েছে! (Account Blocked by Super Admin)'
+              : 'Your account has been BLOCKED by Super Admin!'
+          );
+          setLoading(false);
+          return;
+        }
+
+        const userObj: UserSession = { username: matchedUser, role: matchedRole };
+        const sessionRecord = registerNewSession(userObj);
+        userObj.sessionId = sessionRecord.id;
+
+        onLoginSuccess(userObj);
         onClose?.();
         setLoading(false);
         return;
@@ -166,10 +189,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         assignedRole = 'admin';
       }
 
-      onLoginSuccess({
-        username: inputUser,
-        role: assignedRole,
-      });
+      const userObj: UserSession = { username: inputUser, role: assignedRole };
+      const sessionRecord = registerNewSession(userObj);
+      userObj.sessionId = sessionRecord.id;
+
+      onLoginSuccess(userObj);
       onClose?.();
       setLoading(false);
       return;
@@ -177,10 +201,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       console.warn('Error during login verification, falling back to instant login:', err);
       // Even if fetch errors out, log the user in directly with their entered username
       if (username.trim()) {
-        onLoginSuccess({
-          username: username.trim(),
-          role: 'super_admin',
-        });
+        const userObj: UserSession = { username: username.trim(), role: 'super_admin' };
+        const sessionRecord = registerNewSession(userObj);
+        userObj.sessionId = sessionRecord.id;
+
+        onLoginSuccess(userObj);
         onClose?.();
       } else {
         setError(t.invalid);
