@@ -20,6 +20,7 @@ import {
   Crown,
   Save,
 } from 'lucide-react';
+import { LoadingSpinner } from './LoadingSpinner';
 
 interface DataTableProps {
   headers: string[];
@@ -524,10 +525,10 @@ export const DataTable: React.FC<DataTableProps> = ({
 
       {/* Main Table / Grid Content */}
       {loading && rows.length === 0 ? (
-        <div className="py-12 text-center">
-          <div className="inline-block w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mb-2"></div>
-          <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400">Loading Google Sheet data...</p>
-        </div>
+        <LoadingSpinner
+          message={lang === 'bn' ? 'গুগল শিটের লাইভ ডেটা লোড হচ্ছে...' : 'Loading Google Sheet live data...'}
+          submessage={lang === 'bn' ? 'অনুগ্রহ করে অপেক্ষা করুন' : 'Please wait while records update'}
+        />
       ) : paginatedRows.length === 0 ? (
         <div className="py-12 text-center text-slate-500 dark:text-slate-400">
           <p className="text-[10px] font-medium">{t.noData}</p>
