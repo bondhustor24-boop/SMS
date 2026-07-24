@@ -16,6 +16,7 @@ import {
   Save,
   Crown,
   Lock,
+  RefreshCw,
 } from 'lucide-react';
 import { LoadingSpinner } from './LoadingSpinner';
 
@@ -37,6 +38,7 @@ export const RecentSmsWidget: React.FC<RecentSmsWidgetProps> = ({
   userRole,
 }) => {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [copyingIndex, setCopyingIndex] = useState<number | null>(null);
   const [templateStyle, setTemplateStyle] = useState<TemplateStyle>(() => {
     try {
       const saved = localStorage.getItem('sms333_sms_template');
@@ -112,9 +114,13 @@ export const RecentSmsWidget: React.FC<RecentSmsWidgetProps> = ({
   ]);
 
   const copyText = (text: string, idx: number) => {
-    navigator.clipboard.writeText(text);
-    setCopiedIndex(idx);
-    setTimeout(() => setCopiedIndex(null), 2000);
+    setCopyingIndex(idx);
+    setTimeout(() => {
+      navigator.clipboard.writeText(text);
+      setCopyingIndex(null);
+      setCopiedIndex(idx);
+      setTimeout(() => setCopiedIndex(null), 1800);
+    }, 200);
   };
 
   const t = {
@@ -279,9 +285,15 @@ export const RecentSmsWidget: React.FC<RecentSmsWidgetProps> = ({
                           idx
                         )
                       }
+                      disabled={copyingIndex === idx}
                       className="flex items-center space-x-1 text-[10px] font-bold text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 shadow-2xs hover:bg-slate-100 dark:hover:bg-slate-700"
                     >
-                      {copiedIndex === idx ? (
+                      {copyingIndex === idx ? (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5 text-emerald-500 animate-spin" />
+                          <span className="text-emerald-500">{lang === 'bn' ? 'কপি...' : 'Copying...'}</span>
+                        </>
+                      ) : copiedIndex === idx ? (
                         <>
                           <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                           <span className="text-emerald-600 dark:text-emerald-400">

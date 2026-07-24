@@ -304,6 +304,24 @@ export interface DeviceNotification {
 }
 
 const STORAGE_KEY_NOTIFICATIONS = 'sms333_device_notifications';
+const STORAGE_KEY_DISMISSED_NOTIFS = 'sms333_dismissed_notif_ids';
+
+export function getDismissedNotifIds(): string[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_DISMISSED_NOTIFS);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function addDismissedNotifId(notificationId: string): void {
+  const current = getDismissedNotifIds();
+  if (!current.includes(notificationId)) {
+    const updated = [...current, notificationId];
+    localStorage.setItem(STORAGE_KEY_DISMISSED_NOTIFS, JSON.stringify(updated));
+  }
+}
 
 export function getStoredNotifications(): DeviceNotification[] {
   try {
@@ -335,12 +353,14 @@ export function sendNotificationToDevice(
 
 export function getUserUnreadNotifications(username: string): DeviceNotification[] {
   const notifications = getStoredNotifications();
+  const dismissedIds = getDismissedNotifIds();
   return notifications.filter(
-    (n) => n.targetUsername === username.toLowerCase() && !n.read
+    (n) => n.targetUsername === username.toLowerCase() && !n.read && !dismissedIds.includes(n.id)
   );
 }
 
 export function markNotificationAsRead(notificationId: string): void {
+  addDismissedNotifId(notificationId);
   const notifications = getStoredNotifications();
   const updated = notifications.map((n) =>
     n.id === notificationId ? { ...n, read: true } : n

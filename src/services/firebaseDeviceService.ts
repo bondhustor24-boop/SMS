@@ -262,3 +262,13 @@ export async function getFirebaseUserNotifications(username: string): Promise<De
     return [];
   }
 }
+
+// Mark notification as read in Firebase
+export async function markFirebaseNotificationAsRead(notificationId: string): Promise<void> {
+  try {
+    const docRef = doc(db, NOTIFICATIONS_COLLECTION, notificationId);
+    await updateDoc(docRef, { read: true });
+  } catch (err) {
+    console.warn('Error marking notification as read in Firebase:', err);
+  }
+}

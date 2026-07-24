@@ -19,6 +19,7 @@ import {
   Unlock,
   Crown,
   Save,
+  RefreshCw,
 } from 'lucide-react';
 import { LoadingSpinner } from './LoadingSpinner';
 
@@ -55,6 +56,7 @@ export const DataTable: React.FC<DataTableProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [copiedRowId, setCopiedRowId] = useState<string | null>(null);
+  const [copyingRowId, setCopyingRowId] = useState<string | null>(null);
 
   // Super Admin Column Locking state (persisted in localStorage)
   const [lockedColumns, setLockedColumns] = useState<Record<string, boolean>>(() => {
@@ -281,11 +283,15 @@ export const DataTable: React.FC<DataTableProps> = ({
   };
 
   const copyRowToClipboard = (row: SheetRow) => {
-    const cleanRow = { ...row };
-    delete cleanRow._id;
-    navigator.clipboard.writeText(JSON.stringify(cleanRow, null, 2));
-    setCopiedRowId(row._id);
-    setTimeout(() => setCopiedRowId(null), 2000);
+    setCopyingRowId(row._id);
+    setTimeout(() => {
+      const cleanRow = { ...row };
+      delete cleanRow._id;
+      navigator.clipboard.writeText(JSON.stringify(cleanRow, null, 2));
+      setCopyingRowId(null);
+      setCopiedRowId(row._id);
+      setTimeout(() => setCopiedRowId(null), 1800);
+    }, 200);
   };
 
   const exportToCSV = () => {
@@ -592,10 +598,13 @@ export const DataTable: React.FC<DataTableProps> = ({
                     <td className="py-2 px-2 text-center">
                       <button
                         onClick={() => copyRowToClipboard(row)}
+                        disabled={copyingRowId === row._id}
                         className="p-1 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-100/60 dark:hover:bg-emerald-950/60 rounded transition-colors"
                         title={copiedRowId === row._id ? t.copied : t.copyRow}
                       >
-                        {copiedRowId === row._id ? (
+                        {copyingRowId === row._id ? (
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-500" />
+                        ) : copiedRowId === row._id ? (
                           <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                         ) : (
                           <Copy className="w-3 h-3" />
@@ -621,14 +630,17 @@ export const DataTable: React.FC<DataTableProps> = ({
                 </span>
                 <button
                   onClick={() => copyRowToClipboard(row)}
+                  disabled={copyingRowId === row._id}
                   className="flex items-center space-x-1 text-[10px] text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400"
                 >
-                  {copiedRowId === row._id ? (
+                  {copyingRowId === row._id ? (
+                    <RefreshCw className="w-3 h-3 animate-spin text-emerald-500" />
+                  ) : copiedRowId === row._id ? (
                     <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                   ) : (
                     <Copy className="w-3 h-3" />
                   )}
-                  <span>{copiedRowId === row._id ? t.copied : t.copyRow}</span>
+                  <span>{copyingRowId === row._id ? (lang === 'bn' ? 'কপি হচ্ছে...' : 'Copying...') : copiedRowId === row._id ? t.copied : t.copyRow}</span>
                 </button>
               </div>
 

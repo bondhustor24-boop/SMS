@@ -167,12 +167,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       setError(t.invalid);
       setLoading(false);
       return;
-
-      setError(t.invalid);
-      setLoading(false);
-      return;
     } catch (err: any) {
-
       console.warn('Error during login verification:', err);
       setError(t.invalid);
     } finally {

@@ -8,6 +8,7 @@ interface HeaderProps {
   lastUpdated: string | null;
   loading: boolean;
   isSyncing?: boolean;
+  isLoggingOut?: boolean;
   user: UserSession | null;
   unreadNotifs?: DeviceNotification[];
   onDismissNotif?: (id: string) => void;
@@ -33,6 +34,7 @@ export const Header: React.FC<HeaderProps> = ({
   lastUpdated,
   loading,
   isSyncing = false,
+  isLoggingOut = false,
   user,
   unreadNotifs = [],
   onDismissNotif,
@@ -330,10 +332,12 @@ export const Header: React.FC<HeaderProps> = ({
                 </button>
                 <button
                   onClick={onLogoutClick}
-                  className="p-0.5 hover:bg-slate-800 text-slate-400 hover:text-red-400 rounded transition-colors ml-0.5"
+                  disabled={isLoggingOut}
+                  className="p-0.5 hover:bg-slate-800 text-slate-400 hover:text-red-400 rounded transition-colors ml-0.5 inline-flex items-center space-x-1"
                   title={t.logout}
                 >
-                  <LogOut className="w-3.5 h-3.5" />
+                  <LogOut className={`w-3.5 h-3.5 ${isLoggingOut ? 'animate-spin text-red-400' : ''}`} />
+                  {isLoggingOut && <span className="text-[9px] text-red-400">{lang === 'bn' ? 'লগআউট...' : 'Out...'}</span>}
                 </button>
               </div>
             ) : (
@@ -502,10 +506,11 @@ export const Header: React.FC<HeaderProps> = ({
                       onLogoutClick();
                       setIsMobileMenuOpen(false);
                     }}
+                    disabled={isLoggingOut}
                     className="p-1.5 text-slate-400 hover:text-red-400 bg-slate-700/50 rounded-lg transition-colors flex items-center space-x-1 text-xs"
                   >
-                    <LogOut className="w-3.5 h-3.5" />
-                    <span>{t.logout}</span>
+                    <LogOut className={`w-3.5 h-3.5 ${isLoggingOut ? 'animate-spin text-red-400' : ''}`} />
+                    <span>{isLoggingOut ? (lang === 'bn' ? 'লগআউট হচ্ছে...' : 'Logging out...') : t.logout}</span>
                   </button>
                 </div>
               ) : (

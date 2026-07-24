@@ -12,13 +12,15 @@ import { DeviceManagementModal } from './components/DeviceManagementModal';
 import { FirebaseUserManagerModal } from './components/FirebaseUserManagerModal';
 import { UserProfileModal } from './components/UserProfileModal';
 import { seedDefaultSuperAdminInFirebase } from './services/firebaseUserService';
-import { getFirebaseUserNotifications } from './services/firebaseDeviceService';
+import { getFirebaseUserNotifications, markFirebaseNotificationAsRead } from './services/firebaseDeviceService';
 
 import {
   isUserBlocked,
   getStoredSessions,
   getUserUnreadNotifications,
   markNotificationAsRead,
+  getDismissedNotifIds,
+  addDismissedNotifId,
   DeviceNotification,
 } from './utils/deviceManager';
 import { Sparkles, AlertCircle, RefreshCw, Layers, Bell, X } from 'lucide-react';
@@ -73,6 +75,8 @@ export default function App() {
     }
   }, [theme]);
 
+  const [isLoggingOut, setIsLoggingOut] = useState<boolean>(false);
+
   // Periodic check if current logged in user has been blocked or remotely logged out by Super Admin
   useEffect(() => {
     if (!user) return;
@@ -106,12 +110,21 @@ export default function App() {
 
       // 3. Check for Super Admin Notifications (Local + Firebase)
       const notifs = getUserUnreadNotifications(user.username);
+      const dismissedIds = getDismissedNotifIds();
+
       getFirebaseUserNotifications(user.username).then((fbNotifs) => {
-        const combined = [...notifs, ...fbNotifs];
-        if (combined.length > 0) {
-          setUnreadNotifs(combined);
-        }
-      }).catch((e) => {
+        const unreadFbNotifs = fbNotifs.filter((n) => !dismissedIds.includes(n.id) && !n.read);
+        const combined = [...notifs, ...unreadFbNotifs];
+        
+        // Filter out dismissed or already read notifications
+        const activeNotifs = combined.filter((n) => !dismissedIds.includes(n.id));
+        
+        // Deduplicate by ID or timestamp message match
+        const unique = Array.from(
+          new Map(activeNotifs.map((item) => [item.id || `${item.timestamp}-${item.message}`, item])).values()
+        );
+        setUnreadNotifs(unique);
+      }).catch(() => {
         if (notifs.length > 0) setUnreadNotifs(notifs);
       });
     }, 2000);
@@ -125,9 +138,29 @@ export default function App() {
   };
 
   const handleLogout = () => {
-    setUser(null);
-    localStorage.removeItem('sms333_user_session');
-    setIsDeviceModalOpen(false);
+    setIsLoggingOut(true);
+    setTimeout(() => {
+      setUser(null);
+      localStorage.removeItem('sms333_user_session');
+      setIsDeviceModalOpen(false);
+      setIsLoggingOut(false);
+    }, 350);
+  };
+
+  const handleDismissNotif = (notifId: string) => {
+    markNotificationAsRead(notifId);
+    markFirebaseNotificationAsRead(notifId);
+    addDismissedNotifId(notifId);
+    setUnreadNotifs((prev) => prev.filter((n) => n.id !== notifId));
+  };
+
+  const handleClearAllNotifs = () => {
+    unreadNotifs.forEach((n) => {
+      markNotificationAsRead(n.id);
+      markFirebaseNotificationAsRead(n.id);
+      addDismissedNotifId(n.id);
+    });
+    setUnreadNotifs([]);
   };
 
   // Save active sheet URL in local storage
@@ -204,16 +237,11 @@ export default function App() {
         lastUpdated={data?.updatedAt || null}
         loading={loading}
         isSyncing={isSyncing}
+        isLoggingOut={isLoggingOut}
         user={user}
         unreadNotifs={unreadNotifs}
-        onDismissNotif={(notifId) => {
-          markNotificationAsRead(notifId);
-          setUnreadNotifs((prev) => prev.filter((n) => n.id !== notifId));
-        }}
-        onClearAllNotifs={() => {
-          unreadNotifs.forEach((n) => markNotificationAsRead(n.id));
-          setUnreadNotifs([]);
-        }}
+        onDismissNotif={handleDismissNotif}
+        onClearAllNotifs={handleClearAllNotifs}
         onLoginClick={() => setIsLoginModalOpen(true)}
         onLogoutClick={handleLogout}
         onDevicesClick={() => setIsDeviceModalOpen(true)}
@@ -269,10 +297,7 @@ export default function App() {
           <div className="bg-white dark:bg-slate-900 border border-blue-500/50 rounded-2xl p-5 max-w-md w-full shadow-2xl space-y-4 relative">
             {/* Top Right Close Button */}
             <button
-              onClick={() => {
-                unreadNotifs.forEach((n) => markNotificationAsRead(n.id));
-                setUnreadNotifs([]);
-              }}
+              onClick={handleClearAllNotifs}
               className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-slate-100 dark:bg-slate-800 rounded-xl transition-colors"
               title={lang === 'bn' ? 'বন্ধ করুন' : 'Close Notification'}
             >
@@ -307,10 +332,7 @@ export default function App() {
                   
                   {/* Single Item Dismiss */}
                   <button
-                    onClick={() => {
-                      markNotificationAsRead(notif.id);
-                      setUnreadNotifs((prev) => prev.filter((n) => n.id !== notif.id));
-                    }}
+                    onClick={() => handleDismissNotif(notif.id)}
                     className="absolute top-2 right-2 p-1 text-slate-400 hover:text-red-500 transition-colors"
                     title="Dismiss"
                   >
@@ -321,10 +343,7 @@ export default function App() {
             </div>
 
             <button
-              onClick={() => {
-                unreadNotifs.forEach((n) => markNotificationAsRead(n.id));
-                setUnreadNotifs([]);
-              }}
+              onClick={handleClearAllNotifs}
               className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl transition-colors shadow-xs flex items-center justify-center space-x-1.5"
             >
               <X className="w-4 h-4" />
