@@ -142,12 +142,14 @@ export const DataTable: React.FC<DataTableProps> = ({
   }[lang];
 
   const handleSaveColumnSettings = () => {
-    // If Super Admin, update superAdminHiddenColumns to match hiddenColumns for locked items
-    const updatedSaHidden = { ...superAdminHiddenColumns };
+    // If Super Admin, update superAdminHiddenColumns so locked or hidden columns are hidden for non-admin users
+    const updatedSaHidden: Record<string, boolean> = { ...superAdminHiddenColumns };
     if (userRole === 'super_admin') {
       headers.forEach((h) => {
-        if (lockedColumns[h]) {
-          updatedSaHidden[h] = !!hiddenColumns[h];
+        if (lockedColumns[h] || hiddenColumns[h]) {
+          updatedSaHidden[h] = true;
+        } else {
+          updatedSaHidden[h] = false;
         }
       });
       setSuperAdminHiddenColumns(updatedSaHidden);
@@ -186,10 +188,12 @@ export const DataTable: React.FC<DataTableProps> = ({
       }
     };
 
+    syncColumns(); // Immediate check on mount
+
     window.addEventListener('sms333_columns_updated', syncColumns);
     window.addEventListener('storage', syncColumns);
 
-    const interval = setInterval(syncColumns, 2000);
+    const interval = setInterval(syncColumns, 1000);
 
     return () => {
       window.removeEventListener('sms333_columns_updated', syncColumns);
@@ -201,9 +205,10 @@ export const DataTable: React.FC<DataTableProps> = ({
   // Visible columns calculated based on user role and locks
   const visibleHeaders = useMemo(() => {
     return headers.filter((h) => {
-      // If column is locked by Super Admin and current user is not Super Admin, hide it completely
-      if (userRole !== 'super_admin' && (lockedColumns[h] || superAdminHiddenColumns[h])) {
-        return false;
+      if (userRole !== 'super_admin') {
+        if (lockedColumns[h] || superAdminHiddenColumns[h]) {
+          return false;
+        }
       }
       return !hiddenColumns[h];
     });
@@ -655,7 +660,19 @@ export const DataTable: React.FC<DataTableProps> = ({
       ) : (
         /* Raw JSON view mode */
         <div className="p-3 bg-slate-900 text-emerald-400 font-mono text-[10px] overflow-x-auto max-h-[500px]">
-          <pre>{JSON.stringify(paginatedRows, null, 2)}</pre>
+          <pre>
+            {JSON.stringify(
+              paginatedRows.map((r) => {
+                const clean: Record<string, any> = {};
+                visibleHeaders.forEach((h) => {
+                  clean[h] = r[h];
+                });
+                return clean;
+              }),
+              null,
+              2
+            )}
+          </pre>
         </div>
       )}
 
