@@ -1,6 +1,6 @@
-import React from 'react';
-import { RefreshCw, ShieldCheck, Globe, Database, User, LogIn, LogOut, Crown, Lock, Sun, Moon, Monitor } from 'lucide-react';
-import { UserSession } from '../types';
+import React, { useState } from 'react';
+import { RefreshCw, ShieldCheck, Globe, Database, User, UserCheck, LogIn, LogOut, Crown, Lock, Sun, Moon, Monitor, Target, Bell, BellRing, X } from 'lucide-react';
+import { UserSession, DeviceNotification } from '../types';
 
 interface HeaderProps {
   sheetTitle: string;
@@ -9,6 +9,9 @@ interface HeaderProps {
   loading: boolean;
   isSyncing?: boolean;
   user: UserSession | null;
+  unreadNotifs?: DeviceNotification[];
+  onDismissNotif?: (id: string) => void;
+  onClearAllNotifs?: () => void;
   onLoginClick: () => void;
   onLogoutClick: () => void;
   onDevicesClick?: () => void;
@@ -31,6 +34,9 @@ export const Header: React.FC<HeaderProps> = ({
   loading,
   isSyncing = false,
   user,
+  unreadNotifs = [],
+  onDismissNotif,
+  onClearAllNotifs,
   onLoginClick,
   onLogoutClick,
   onDevicesClick,
@@ -44,6 +50,7 @@ export const Header: React.FC<HeaderProps> = ({
   theme,
   setTheme,
 }) => {
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
 
   const t = {
     en: {
@@ -71,46 +78,138 @@ export const Header: React.FC<HeaderProps> = ({
   }[lang];
 
   return (
-    <header className="bg-slate-900 border-b border-slate-800 text-white sticky top-0 z-30 shadow-md">
-      <div className="max-w-7xl mx-auto px-2.5 sm:px-4 py-2">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          {/* Brand & Status */}
-          <div className="flex items-center space-x-2">
-            <div className="p-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-emerald-400">
-              <Database className="w-4 h-4" />
+    <header className="bg-slate-900/95 backdrop-blur-md border-b border-slate-800 text-white sticky top-0 z-30 shadow-lg">
+      <div className="max-w-7xl mx-auto px-3 sm:px-5 py-2.5">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2.5">
+          {/* Brand & Status with Goal Icon */}
+          <div className="flex items-center space-x-2.5">
+            <div className="p-2 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 shadow-xs shrink-0 flex items-center justify-center">
+              <Database className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div>
-              <div className="flex items-center space-x-1.5">
-                <h1 className="text-xs sm:text-sm font-bold tracking-tight text-slate-100">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-sm sm:text-base font-extrabold tracking-tight text-slate-100">
                   {sheetTitle || t.title}
                 </h1>
-                <span className="inline-flex items-center px-1.5 py-0.2 rounded-full text-[10px] font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  <span className={`w-1.5 h-1.5 rounded-full ${isSyncing ? 'bg-amber-400 animate-ping' : 'bg-emerald-400 animate-pulse'} mr-1`}></span>
+                
+                {/* Goal / Target Status Badge */}
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30 shadow-2xs">
+                  <Target className="w-3 h-3 text-amber-400 mr-1 animate-pulse" />
+                  <span>Goal: Live Sync</span>
+                </span>
+
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  <span className={`w-1.5 h-1.5 rounded-full ${isSyncing ? 'bg-amber-400 animate-ping' : 'bg-emerald-400 animate-pulse'} mr-1.5`}></span>
                   {isSyncing ? (lang === 'bn' ? 'সিঙ্ক...' : 'Syncing...') : 'Live'}
                 </span>
               </div>
-              <p className="text-[10px] text-slate-400">{t.subtitle}</p>
+              <p className="text-[10.5px] text-slate-400 font-medium">{t.subtitle}</p>
             </div>
           </div>
 
           {/* Action Bar */}
-          <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+          <div className="flex flex-wrap items-center gap-2 text-[10.5px]">
+            {/* Notification Bell Dropdown Button */}
+            <div className="relative">
+              <button
+                onClick={() => setIsNotifOpen(!isNotifOpen)}
+                className="relative flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700/80 text-[10.5px] transition-all shadow-2xs"
+                title={lang === 'bn' ? 'নোটিফিকেশন সেন্টার' : 'Notifications'}
+              >
+                <BellRing className={`w-3.5 h-3.5 ${unreadNotifs.length > 0 ? 'text-amber-400 animate-bounce' : 'text-slate-400'}`} />
+                <span className="font-bold text-slate-200 hidden sm:inline">
+                  {lang === 'bn' ? 'নোটিফিকেশন' : 'Alerts'}
+                </span>
+                {unreadNotifs.length > 0 && (
+                  <span className="bg-red-500 text-white font-extrabold text-[9px] px-1.5 py-0.2 rounded-full border border-red-400 animate-pulse">
+                    {unreadNotifs.length}
+                  </span>
+                )}
+              </button>
+
+              {/* Notification Close & Dismiss Popup */}
+              {isNotifOpen && (
+                <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-slate-900 border border-slate-700 shadow-2xl rounded-2xl p-3 z-50 animate-in fade-in slide-in-from-top-2">
+                  <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800">
+                    <div className="flex items-center space-x-2">
+                      <Bell className="w-4 h-4 text-amber-400" />
+                      <h4 className="font-bold text-slate-100 text-xs">
+                        {lang === 'bn' ? 'নোটিফিকেশন প্যানেল' : 'Notifications'} ({unreadNotifs.length})
+                      </h4>
+                    </div>
+                    {/* Panel Close Button */}
+                    <button
+                      onClick={() => setIsNotifOpen(false)}
+                      className="p-1 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors"
+                      title={lang === 'bn' ? 'বন্ধ করুন' : 'Close Panel'}
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {unreadNotifs.length === 0 ? (
+                    <div className="py-6 text-center text-slate-500 text-[11px] font-medium">
+                      {lang === 'bn' ? 'কোন নতুন নোটিফিকেশন নেই' : 'No new notifications'}
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                      {unreadNotifs.map((notif) => (
+                        <div key={notif.id} className="p-2.5 bg-slate-800/80 border border-slate-700/80 rounded-xl text-[10.5px] relative group">
+                          <div className="flex items-center justify-between text-slate-400 text-[9.5px] font-bold mb-1">
+                            <span className="text-emerald-400">{notif.senderUsername}</span>
+                            <span>{new Date(notif.timestamp).toLocaleTimeString()}</span>
+                          </div>
+                          <p className="text-slate-200 font-medium whitespace-pre-wrap pr-5">{notif.message}</p>
+                          {/* Item Close Button */}
+                          <button
+                            onClick={() => onDismissNotif?.(notif.id)}
+                            className="absolute top-2 right-2 p-1 text-slate-400 hover:text-red-400 transition-colors"
+                            title={lang === 'bn' ? 'মুছে ফেলুন' : 'Dismiss'}
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {unreadNotifs.length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-slate-800 flex justify-between items-center">
+                      <span className="text-[9.5px] text-slate-400 font-medium">
+                        {lang === 'bn' ? 'লাইব নোটিফিকেশন সিস্টেম' : 'Live Notification System'}
+                      </span>
+                      <button
+                        onClick={() => {
+                          onClearAllNotifs?.();
+                          setIsNotifOpen(false);
+                        }}
+                        className="text-[10px] font-bold text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-1 rounded-lg border border-amber-500/30 transition-colors flex items-center gap-1"
+                      >
+                        <X className="w-3 h-3" />
+                        <span>{lang === 'bn' ? 'সব বন্ধ / সাফ করুন' : 'Clear & Close All'}</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* Auto Refresh Select */}
             <div
-              className={`flex items-center bg-slate-800 border ${
-                user?.role === 'super_admin' ? 'border-amber-500/50' : 'border-slate-700'
-              } rounded-md px-2 py-1 text-[10px] text-slate-300 relative group`}
+              className={`flex items-center bg-slate-800/90 border ${
+                user?.role === 'super_admin' ? 'border-amber-500/50' : 'border-slate-700/80'
+              } rounded-xl px-2.5 py-1 text-[10.5px] text-slate-300 relative group shadow-2xs`}
               title={
                 user?.role === 'super_admin'
                   ? 'Auto Sync Settings (Super Admin unlocked)'
                   : 'Auto Sync interval is locked. Only Super Admin can change sync settings.'
               }
             >
-              <span className="mr-1 text-slate-400 flex items-center gap-0.5">
+              <span className="mr-1.5 text-slate-400 flex items-center gap-1 font-semibold">
                 {user?.role === 'super_admin' ? (
-                  <Crown className="w-3 h-3 text-amber-400" />
+                  <Crown className="w-3.5 h-3.5 text-amber-400" />
                 ) : (
-                  <Lock className="w-3 h-3 text-slate-500" />
+                  <Lock className="w-3.5 h-3.5 text-slate-500" />
                 )}
                 <span>{t.autoRefresh}:</span>
               </span>
@@ -118,7 +217,7 @@ export const Header: React.FC<HeaderProps> = ({
                 value={autoRefreshInterval}
                 disabled={user?.role !== 'super_admin'}
                 onChange={(e) => setAutoRefreshInterval(Number(e.target.value))}
-                className={`bg-transparent font-medium focus:outline-none text-[10px] ${
+                className={`bg-transparent font-bold focus:outline-none text-[10.5px] ${
                   user?.role === 'super_admin'
                     ? 'text-amber-400 cursor-pointer'
                     : 'text-slate-400 cursor-not-allowed opacity-80'
@@ -137,27 +236,27 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={onRefresh}
               disabled={loading || isSyncing}
-              className="flex items-center space-x-1 px-2.5 py-1 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-[10px] transition-colors disabled:opacity-50"
+              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10.5px] transition-all shadow-sm hover:shadow-md disabled:opacity-50"
             >
-              <RefreshCw className={`w-3 h-3 ${loading || isSyncing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${loading || isSyncing ? 'animate-spin' : ''}`} />
               <span>{lang === 'bn' ? 'রিফ্রেশ' : 'Refresh'}</span>
             </button>
 
             {/* Theme Switcher */}
             <button
               onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-              className="flex items-center space-x-1 px-2 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[10px] transition-colors"
+              className="flex items-center space-x-1 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700/80 text-[10.5px] transition-all shadow-2xs"
               title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
             >
               {theme === 'light' ? (
                 <>
-                  <Moon className="w-3 h-3 text-amber-300" />
-                  <span className="font-semibold text-slate-200">{lang === 'bn' ? 'ডার্ক' : 'Dark'}</span>
+                  <Moon className="w-3.5 h-3.5 text-amber-300" />
+                  <span className="font-bold text-slate-200">{lang === 'bn' ? 'ডার্ক' : 'Dark'}</span>
                 </>
               ) : (
                 <>
-                  <Sun className="w-3 h-3 text-amber-400 animate-pulse" />
-                  <span className="font-semibold text-amber-300">{lang === 'bn' ? 'লাইট' : 'Light'}</span>
+                  <Sun className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                  <span className="font-bold text-amber-300">{lang === 'bn' ? 'লাইট' : 'Light'}</span>
                 </>
               )}
             </button>
@@ -165,23 +264,23 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Language Switcher */}
             <button
               onClick={() => setLang(lang === 'en' ? 'bn' : 'en')}
-              className="flex items-center space-x-1 px-2 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[10px] transition-colors"
+              className="flex items-center space-x-1 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700/80 text-[10.5px] transition-all shadow-2xs"
               title="Toggle language"
             >
-              <Globe className="w-3 h-3 text-blue-400" />
-              <span className="font-semibold text-blue-300">{lang === 'en' ? 'BN' : 'EN'}</span>
+              <Globe className="w-3.5 h-3.5 text-blue-400" />
+              <span className="font-bold text-blue-300">{lang === 'en' ? 'BN' : 'EN'}</span>
             </button>
 
             {/* Login / User Status */}
             {user ? (
-              <div className="flex items-center space-x-1.5">
+              <div className="flex items-center space-x-2">
                 {user.role === 'super_admin' && onFirebaseUsersClick && (
                   <button
                     onClick={onFirebaseUsersClick}
-                    className="flex items-center space-x-1 px-2 py-0.5 rounded-md bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 border border-orange-500/40 text-[10px] font-semibold transition-colors shadow-xs"
+                    className="flex items-center space-x-1 px-2.5 py-1 rounded-xl bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 border border-orange-500/40 text-[10.5px] font-bold transition-all shadow-xs"
                     title="Firebase User Database Control"
                   >
-                    <Crown className="w-3 h-3 text-orange-400" />
+                    <Crown className="w-3.5 h-3.5 text-orange-400" />
                     <span>{lang === 'bn' ? 'ফায়ারবেস ইউজার' : 'Firebase Users'}</span>
                   </button>
                 )}
@@ -189,28 +288,28 @@ export const Header: React.FC<HeaderProps> = ({
                 {user.role === 'super_admin' && onDevicesClick && (
                   <button
                     onClick={onDevicesClick}
-                    className="flex items-center space-x-1 px-2 py-0.5 rounded-md bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[10px] font-semibold transition-colors shadow-xs"
+                    className="flex items-center space-x-1 px-2.5 py-1 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[10.5px] font-bold transition-all shadow-xs"
                     title="Super Admin Live Device & Session Control"
                   >
-                    <Monitor className="w-3 h-3 text-amber-400" />
+                    <Monitor className="w-3.5 h-3.5 text-amber-400" />
                     <span>{lang === 'bn' ? 'ডিভাইস কন্ট্রোল' : 'Device Control'}</span>
                   </button>
                 )}
 
-
+                {/* Profile Button with UserCheck Profile Icon */}
                 {onProfileClick && (
                   <button
                     onClick={onProfileClick}
-                    className="flex items-center space-x-1 px-2 py-0.5 rounded-md bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[10px] font-semibold transition-colors shadow-xs"
+                    className="flex items-center space-x-1.5 px-2.5 py-1 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[10.5px] font-bold transition-all shadow-xs"
                     title="Edit Profile, Auto IP & Device Info"
                   >
-                    <User className="w-3 h-3 text-emerald-400" />
+                    <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
                     <span>{lang === 'bn' ? 'প্রোফাইল' : 'Profile'}</span>
                   </button>
                 )}
 
                 <div
-                  className={`flex items-center space-x-1 border rounded-md px-2 py-0.5 text-[10px] ${
+                  className={`flex items-center space-x-1.5 border rounded-xl px-2.5 py-1 text-[10.5px] ${
                     user.role === 'super_admin'
                       ? 'bg-amber-950/80 border-amber-500/50 text-amber-200'
                       : user.role === 'admin'
@@ -220,17 +319,17 @@ export const Header: React.FC<HeaderProps> = ({
                 >
                   <button
                     onClick={onProfileClick}
-                    className="flex items-center space-x-1 font-semibold hover:underline"
+                    className="flex items-center space-x-1 font-bold hover:underline"
                     title="Click to edit profile"
                   >
                     {user.role === 'super_admin' ? (
-                      <Crown className="w-3 h-3 text-amber-400" />
+                      <Crown className="w-3.5 h-3.5 text-amber-400" />
                     ) : (
-                      <User className="w-3 h-3 text-emerald-400" />
+                      <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
                     )}
-                    <span className="capitalize text-[10px]">{user.username}</span>
+                    <span className="capitalize text-[10.5px]">{user.username}</span>
                     <span
-                      className={`text-[9px] px-1 py-0.1 rounded uppercase font-bold ${
+                      className={`text-[8.5px] px-1.5 py-0.2 rounded-md uppercase font-black tracking-wider ${
                         user.role === 'super_admin'
                           ? 'bg-amber-500/30 text-amber-300 border border-amber-500/40'
                           : user.role === 'admin'
@@ -243,19 +342,19 @@ export const Header: React.FC<HeaderProps> = ({
                   </button>
                   <button
                     onClick={onLogoutClick}
-                    className="p-0.5 hover:bg-slate-800 text-slate-400 hover:text-red-400 rounded transition-colors ml-0.5"
+                    className="p-1 hover:bg-slate-800 text-slate-400 hover:text-red-400 rounded-lg transition-colors ml-1"
                     title={t.logout}
                   >
-                    <LogOut className="w-3 h-3" />
+                    <LogOut className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
             ) : (
               <button
                 onClick={onLoginClick}
-                className="flex items-center space-x-1 px-2.5 py-1 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-[10px] transition-colors shadow-xs"
+                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10.5px] transition-all shadow-sm"
               >
-                <LogIn className="w-3 h-3 text-emerald-200" />
+                <LogIn className="w-3.5 h-3.5 text-emerald-200" />
                 <span>{t.login}</span>
               </button>
             )}
@@ -264,13 +363,13 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Sync Info Footer inside Header */}
         {lastUpdated && (
-          <div className="mt-1.5 text-[10px] text-slate-400 flex items-center justify-between border-t border-slate-800 pt-1">
-            <span className="flex items-center gap-1 text-slate-400 text-[10px]">
-              <ShieldCheck className="w-3 h-3 text-emerald-400" />
-              {t.lastSync}: {new Date(lastUpdated).toLocaleTimeString()}
+          <div className="mt-2 text-[10px] text-slate-400 flex items-center justify-between border-t border-slate-800/80 pt-1.5">
+            <span className="flex items-center gap-1.5 text-slate-400 text-[10px] font-semibold">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              {t.lastSync}: <span className="font-mono text-slate-200">{new Date(lastUpdated).toLocaleTimeString()}</span>
             </span>
             <span className="font-mono text-slate-500 hidden sm:inline text-[10px]">
-              Sheet: 1hLt1v3C...
+              Sheet ID: 1hLt1v3C83j7aTu4nev35w9j7dwiVdYRD1QzyUTgWzLM
             </span>
           </div>
         )}
@@ -278,3 +377,4 @@ export const Header: React.FC<HeaderProps> = ({
     </header>
   );
 };
+

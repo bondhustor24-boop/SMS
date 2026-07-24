@@ -21,6 +21,10 @@ import {
   markNotificationAsRead,
   DeviceNotification,
 } from './utils/deviceManager';
+import {
+  DashboardTemplateSelector,
+  DashboardTemplateId,
+} from './components/DashboardTemplateSelector';
 import { Sparkles, AlertCircle, RefreshCw, Layers, Bell, X } from 'lucide-react';
 
 const DEFAULT_SHEET_URL =
@@ -62,6 +66,17 @@ export default function App() {
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     return (localStorage.getItem('sms333_theme') as 'light' | 'dark') || 'light';
   });
+  const [dashboardTemplate, setDashboardTemplate] = useState<DashboardTemplateId>(() => {
+    return (localStorage.getItem('sms333_dashboard_template') as DashboardTemplateId) || 'executive';
+  });
+
+  const handleSelectTemplate = (tmpl: DashboardTemplateId) => {
+    setDashboardTemplate(tmpl);
+    localStorage.setItem('sms333_dashboard_template', tmpl);
+    if (tmpl === 'cyber' || tmpl === 'navy') {
+      setTheme('dark');
+    }
+  };
 
   // Sync theme class to html element & localStorage
   useEffect(() => {
@@ -205,6 +220,15 @@ export default function App() {
         loading={loading}
         isSyncing={isSyncing}
         user={user}
+        unreadNotifs={unreadNotifs}
+        onDismissNotif={(notifId) => {
+          markNotificationAsRead(notifId);
+          setUnreadNotifs((prev) => prev.filter((n) => n.id !== notifId));
+        }}
+        onClearAllNotifs={() => {
+          unreadNotifs.forEach((n) => markNotificationAsRead(n.id));
+          setUnreadNotifs([]);
+        }}
         onLoginClick={() => setIsLoginModalOpen(true)}
         onLogoutClick={handleLogout}
         onDevicesClick={() => setIsDeviceModalOpen(true)}
@@ -257,8 +281,20 @@ export default function App() {
       {/* Real-Time Live Notification Alert Modal */}
       {unreadNotifs.length > 0 && (
         <div className="fixed inset-0 z-70 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white dark:bg-slate-900 border border-blue-500/50 rounded-2xl p-5 max-w-md w-full shadow-2xl space-y-4">
-            <div className="flex items-center space-x-3 text-blue-500 border-b border-slate-200 dark:border-slate-800 pb-3">
+          <div className="bg-white dark:bg-slate-900 border border-blue-500/50 rounded-2xl p-5 max-w-md w-full shadow-2xl space-y-4 relative">
+            {/* Top Right Close Button */}
+            <button
+              onClick={() => {
+                unreadNotifs.forEach((n) => markNotificationAsRead(n.id));
+                setUnreadNotifs([]);
+              }}
+              className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-slate-100 dark:bg-slate-800 rounded-xl transition-colors"
+              title={lang === 'bn' ? 'বন্ধ করুন' : 'Close Notification'}
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center space-x-3 text-blue-500 border-b border-slate-200 dark:border-slate-800 pb-3 pr-8">
               <div className="p-2 bg-blue-500/10 rounded-xl">
                 <Bell className="w-6 h-6 text-blue-500 animate-bounce" />
               </div>
@@ -276,13 +312,25 @@ export default function App() {
               {unreadNotifs.map((notif) => (
                 <div
                   key={notif.id}
-                  className="p-3 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 rounded-xl text-xs space-y-1.5"
+                  className="p-3 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 rounded-xl text-xs space-y-1.5 relative group"
                 >
                   <div className="flex items-center justify-between text-[10px] text-blue-600 dark:text-blue-400 font-bold">
                     <span>Sender: {notif.senderUsername}</span>
                     <span>{new Date(notif.timestamp).toLocaleTimeString()}</span>
                   </div>
-                  <p className="text-slate-800 dark:text-slate-100 font-medium whitespace-pre-wrap">{notif.message}</p>
+                  <p className="text-slate-800 dark:text-slate-100 font-medium whitespace-pre-wrap pr-4">{notif.message}</p>
+                  
+                  {/* Single Item Dismiss */}
+                  <button
+                    onClick={() => {
+                      markNotificationAsRead(notif.id);
+                      setUnreadNotifs((prev) => prev.filter((n) => n.id !== notif.id));
+                    }}
+                    className="absolute top-2 right-2 p-1 text-slate-400 hover:text-red-500 transition-colors"
+                    title="Dismiss"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               ))}
             </div>
@@ -292,9 +340,10 @@ export default function App() {
                 unreadNotifs.forEach((n) => markNotificationAsRead(n.id));
                 setUnreadNotifs([]);
               }}
-              className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl transition-colors shadow-xs"
+              className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl transition-colors shadow-xs flex items-center justify-center space-x-1.5"
             >
-              {lang === 'bn' ? 'বুঝেছি / পঠিত হিসাবে চিহ্নিত করুন' : 'Acknowledge & Close'}
+              <X className="w-4 h-4" />
+              <span>{lang === 'bn' ? 'বুঝেছি / পঠিত হিসাবে বন্ধ করুন' : 'Acknowledge & Close All'}</span>
             </button>
           </div>
         </div>
@@ -314,70 +363,91 @@ export default function App() {
           </div>
         ) : (
           /* Full Unlocked Dashboard Content */
-          <>
-            {/* Google Sheet URL Bar & Controls (Super Admin Only) */}
-            {user.role === 'super_admin' && (
-              <SheetUrlInput
-                currentUrl={sheetUrl}
-                onLoadUrl={handleLoadNewUrl}
+          <div className="space-y-4">
+            {/* Dashboard 5 Professional Templates Switcher */}
+            <DashboardTemplateSelector
+              currentTemplate={dashboardTemplate}
+              onSelectTemplate={handleSelectTemplate}
+              lang={lang}
+            />
+
+            <div
+              className={`transition-all duration-300 ${
+                dashboardTemplate === 'cyber'
+                  ? 'bg-slate-950 p-3 sm:p-5 rounded-3xl border border-cyan-500/30 shadow-2xl text-cyan-300'
+                  : dashboardTemplate === 'navy'
+                  ? 'bg-slate-900 p-3 sm:p-5 rounded-3xl border border-indigo-900/60 shadow-2xl text-slate-100'
+                  : dashboardTemplate === 'minimal'
+                  ? 'bg-stone-50/50 dark:bg-zinc-900 p-3 sm:p-5 rounded-3xl border border-stone-200/80 dark:border-zinc-800'
+                  : dashboardTemplate === 'operations'
+                  ? 'bg-amber-950/5 dark:bg-slate-950 p-3 sm:p-5 rounded-3xl border border-amber-500/20 shadow-md'
+                  : ''
+              }`}
+            >
+              {/* Google Sheet URL Bar & Controls (Super Admin Only) */}
+              {user.role === 'super_admin' && (
+                <SheetUrlInput
+                  currentUrl={sheetUrl}
+                  onLoadUrl={handleLoadNewUrl}
+                  lang={lang}
+                  userRole={user.role}
+                />
+              )}
+
+              {/* Access Restricted Warning Banner / Instructions */}
+              {accessError && (
+                <AccessInstructionsModal
+                  sheetUrl={data?.sheetUrl || sheetUrl}
+                  onRetry={() => fetchSheetData(sheetUrl)}
+                  lang={lang}
+                />
+              )}
+
+              {/* General Error Alert */}
+              {errorMessage && !accessError && (
+                <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-6 flex items-center space-x-3 text-red-800 text-xs sm:text-sm">
+                  <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
+                  <div className="flex-1">
+                    <p className="font-bold">Error Loading Sheet</p>
+                    <p>{errorMessage}</p>
+                  </div>
+                  <button
+                    onClick={() => fetchSheetData(sheetUrl)}
+                    className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium text-xs transition-colors shrink-0"
+                  >
+                    Try Again
+                  </button>
+                </div>
+              )}
+
+              {/* Metrics Overview Cards */}
+              <MetricsOverview
+                totalRows={data?.totalRows || 0}
+                filteredRows={data?.rows?.length || 0}
+                totalColumns={data?.headers?.length || 0}
+                updatedAt={data?.updatedAt || null}
+                lang={lang}
+              />
+
+              {/* Featured Last 3 SMS & Timestamps Widget */}
+              <RecentSmsWidget
+                rows={data?.rows || []}
+                headers={data?.headers || []}
+                loading={loading}
                 lang={lang}
                 userRole={user.role}
               />
-            )}
 
-            {/* Access Restricted Warning Banner / Instructions */}
-            {accessError && (
-              <AccessInstructionsModal
-                sheetUrl={data?.sheetUrl || sheetUrl}
-                onRetry={() => fetchSheetData(sheetUrl)}
+              {/* Interactive Data Table & Controls */}
+              <DataTable
+                headers={data?.headers || []}
+                rows={data?.rows || []}
+                loading={loading}
                 lang={lang}
+                userRole={user.role}
               />
-            )}
-
-            {/* General Error Alert */}
-            {errorMessage && !accessError && (
-              <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-6 flex items-center space-x-3 text-red-800 text-xs sm:text-sm">
-                <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
-                <div className="flex-1">
-                  <p className="font-bold">Error Loading Sheet</p>
-                  <p>{errorMessage}</p>
-                </div>
-                <button
-                  onClick={() => fetchSheetData(sheetUrl)}
-                  className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium text-xs transition-colors shrink-0"
-                >
-                  Try Again
-                </button>
-              </div>
-            )}
-
-            {/* Metrics Overview Cards */}
-            <MetricsOverview
-              totalRows={data?.totalRows || 0}
-              filteredRows={data?.rows?.length || 0}
-              totalColumns={data?.headers?.length || 0}
-              updatedAt={data?.updatedAt || null}
-              lang={lang}
-            />
-
-            {/* Featured Last 3 SMS & Timestamps Widget */}
-            <RecentSmsWidget
-              rows={data?.rows || []}
-              headers={data?.headers || []}
-              loading={loading}
-              lang={lang}
-              userRole={user.role}
-            />
-
-            {/* Interactive Data Table & Controls */}
-            <DataTable
-              headers={data?.headers || []}
-              rows={data?.rows || []}
-              loading={loading}
-              lang={lang}
-              userRole={user.role}
-            />
-          </>
+            </div>
+          </div>
         )}
       </main>
     </div>

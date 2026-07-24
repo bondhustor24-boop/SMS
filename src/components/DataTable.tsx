@@ -333,12 +333,12 @@ export const DataTable: React.FC<DataTableProps> = ({
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden text-[10px]">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-xs overflow-hidden text-[10px]">
       {/* Controls Bar */}
-      <div className="p-2.5 sm:p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex flex-col md:flex-row md:items-center justify-between gap-2">
+      <div className="p-3 sm:p-3.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/70 flex flex-col md:flex-row md:items-center justify-between gap-2.5">
         {/* Search Field */}
         <div className="relative flex-1 max-w-md">
-          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchTerm}
@@ -347,12 +347,12 @@ export const DataTable: React.FC<DataTableProps> = ({
               setCurrentPage(1);
             }}
             placeholder={t.searchPlaceholder}
-            className="w-full pl-8 pr-6 py-1.5 text-[10px] bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all text-slate-800 dark:text-slate-100 shadow-2xs"
+            className="w-full pl-9 pr-7 py-2 text-[11px] font-medium bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all text-slate-900 dark:text-slate-100 shadow-2xs"
           />
           {searchTerm && (
             <button
               onClick={() => setSearchTerm('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 hover:text-slate-600 bg-slate-200 dark:bg-slate-700 dark:text-slate-300 rounded-full w-3.5 h-3.5 flex items-center justify-center"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 hover:text-slate-600 bg-slate-200 dark:bg-slate-700 dark:text-slate-300 rounded-full w-4 h-4 flex items-center justify-center"
             >
               ×
             </button>
@@ -360,41 +360,41 @@ export const DataTable: React.FC<DataTableProps> = ({
         </div>
 
         {/* View Switcher, Columns, and Export Actions */}
-        <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+        <div className="flex flex-wrap items-center gap-2 text-[10px]">
           {/* View Mode Toggle */}
-          <div className="bg-slate-200/80 dark:bg-slate-800 p-0.5 rounded-lg flex items-center">
+          <div className="bg-slate-200/80 dark:bg-slate-800/90 p-0.5 rounded-xl flex items-center border border-slate-300/50 dark:border-slate-700/50">
             <button
               onClick={() => setViewMode('table')}
-              className={`p-1 rounded text-[10px] font-medium flex items-center space-x-1 transition-all ${
+              className={`p-1.5 rounded-lg text-[10px] font-semibold flex items-center space-x-1 transition-all ${
                 viewMode === 'table'
-                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-2xs font-semibold'
+                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-2xs font-bold'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
               title="Table View"
             >
-              <Table className="w-3 h-3" />
+              <Table className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => setViewMode('cards')}
-              className={`p-1 rounded text-[10px] font-medium flex items-center space-x-1 transition-all ${
+              className={`p-1.5 rounded-lg text-[10px] font-semibold flex items-center space-x-1 transition-all ${
                 viewMode === 'cards'
-                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-2xs font-semibold'
+                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-2xs font-bold'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
               title="Card Grid View"
             >
-              <LayoutGrid className="w-3 h-3" />
+              <LayoutGrid className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => setViewMode('raw')}
-              className={`p-1 rounded text-[10px] font-medium flex items-center space-x-1 transition-all ${
+              className={`p-1.5 rounded-lg text-[10px] font-semibold flex items-center space-x-1 transition-all ${
                 viewMode === 'raw'
-                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-2xs font-semibold'
+                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-2xs font-bold'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
               title="Raw JSON View"
             >
-              <Code className="w-3 h-3" />
+              <Code className="w-3.5 h-3.5" />
             </button>
           </div>
 
