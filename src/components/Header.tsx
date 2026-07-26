@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { RefreshCw, ShieldCheck, Globe, Database, UserCheck, LogIn, LogOut, Crown, Lock, Sun, Moon, Monitor, Target, Bell, BellRing, X, Menu } from 'lucide-react';
+import { RefreshCw, ShieldCheck, Globe, Database, UserCheck, LogIn, LogOut, Crown, Lock, Sun, Moon, Monitor, Target, Bell, BellRing, X, Menu, Download } from 'lucide-react';
 import { UserSession, DeviceNotification } from '../types';
 
 interface HeaderProps {
@@ -234,6 +234,18 @@ export const Header: React.FC<HeaderProps> = ({
               </select>
             </div>
 
+            {/* App Download Button */}
+            <a
+              href="https://drive.google.com/file/d/1w6iWXrIlzWixk0yP2_o9zFKNKLtCLZzR/view?usp=drivesdk"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="h-7 inline-flex items-center space-x-1.5 px-2.5 rounded-lg bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold text-[10.5px] transition-all shadow-xs border border-blue-400/40 hover:scale-[1.02] active:scale-95"
+              title={lang === 'bn' ? 'অ্যান্ড্রয়েড অ্যাপ ডাউনলোড করুন' : 'Download Android App'}
+            >
+              <Download className="w-3.5 h-3.5 text-blue-200 animate-bounce" />
+              <span>{lang === 'bn' ? 'অ্যাপ ডাউনলোড' : 'App Download'}</span>
+            </a>
+
             {/* Refresh Button */}
             <button
               onClick={onRefresh}
@@ -381,6 +393,18 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Collapsible Mobile Hamburger Drawer Menu */}
         {isMobileMenuOpen && (
           <div className="lg:hidden mt-2 pt-2 border-t border-slate-800 space-y-2.5 animate-in slide-in-from-top-2">
+            {/* App Download Callout on Mobile */}
+            <a
+              href="https://drive.google.com/file/d/1w6iWXrIlzWixk0yP2_o9zFKNKLtCLZzR/view?usp=drivesdk"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="py-2 px-3 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold flex items-center justify-center space-x-2 text-xs shadow-md border border-blue-400/40"
+            >
+              <Download className="w-4 h-4 text-blue-200 animate-bounce" />
+              <span>{lang === 'bn' ? 'অ্যান্ড্রয়েড অ্যাপ ডাউনলোড করুন (APK)' : 'Download Android App (APK)'}</span>
+            </a>
+
             <div className="grid grid-cols-2 gap-2 text-[11px]">
               {/* Refresh Button */}
               <button
